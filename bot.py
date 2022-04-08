@@ -1,7 +1,7 @@
 import discord
 import random
 
-client = discord.Client()
+client = discord.Client(intents=discord.Intents.default())
 
 @client.event
 async def on_ready():
