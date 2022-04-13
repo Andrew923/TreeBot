@@ -16,7 +16,7 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if message.content.startswith('hello'):
+    if message.content.lower() == 'hello':
         await message.channel.send('Hello!')
 
     if message.content.startswith('!say'):
@@ -50,8 +50,34 @@ async def on_message(message):
         with open('storage.json') as f:
             storage = json.load(f)
         await message.channel.send(storage[str(message.author.id)])
-        
 
+    if message.content.startswith('!slideshow'):
+        channel = message.channel
+        index = 0
+        left = '⏪'
+        right = '⏩'
+        list = ['page one', 'page two', 'page three', 'page four']
+        msg = await channel.send(list[0])
+        await msg.add_reaction(left)
+        await msg.add_reaction(right)
+
+        def check(reaction, user):
+            return user == message.author
+        
+        while True:
+            reaction, user = await client.wait_for('reaction_add', timeout=10.0, check=check)
+            if (reaction.emoji == left and index != 0):
+                await msg.edit(content=list[index-1])
+                await msg.remove_reaction(left, user)
+                index -= 1
+            elif (reaction.emoji == left and index == 0):
+                await msg.remove_reaction(left, user)
+            elif (reaction.emoji == right and index != len(list) - 1):
+                await msg.edit(content=list[index+1])
+                await msg.remove_reaction(right, user)
+                index += 1
+            elif (reaction.emoji == right and index == len(list) - 1):
+                await msg.remove_reaction(right, user)
 
 
 client.run('OTYyMDUyNTUzMjIxMjE4MzA0.YlB7Qg.UUspoQO4rq8_1ea-eOAYAxtUmmU')
