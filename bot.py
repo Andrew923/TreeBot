@@ -33,7 +33,7 @@ async def on_message(message):
 
     if message.content.startswith('!time'):
         if (random.randint(1,3) != 1):
-            await message.channel.send("The time is : " + datetime.now().strftime("%H:%M:%S"))
+            await message.channel.send("The time is " + datetime.now().strftime("%H:%M:%S"))
         else:
             await message.channel.send("time for you to get a watch hahaha")
 
