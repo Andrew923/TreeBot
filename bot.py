@@ -3,9 +3,23 @@ import random
 from pokedex import pokedex
 from datetime import datetime
 import json
+import asyncio
+import re
 
+mention_search = re.compile('<@!?(\d+)>')
 client = discord.Client(intents=discord.Intents.all())
 pokedex = pokedex.Pokedex()
+snipe_author = {}
+snipe_content = {}
+
+def read(file):
+    with open(file) as f:
+        return json.load(f)
+
+def write(file, dictionary):
+    with open(file, 'w') as f:
+        json.dump(dictionary, f)
+
 
 @client.event
 async def on_ready():
@@ -13,6 +27,16 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
+    try:
+        embed = message.embeds[0].to_dict()
+        user = client.get_user(int(mention_search.findall(embed['description'])[0]))
+        remind = read('remind.json')
+        if ("you've caught" in embed['description']) and (remind[str(user.id)]):
+            await asyncio.sleep(3*60*60)
+            await message.channel.send(f"{user.mention}, it is time for you to catch the pokemon")
+    except IndexError:
+        pass
+
     if message.author == client.user:
         return
 
@@ -23,9 +47,14 @@ async def on_message(message):
         await message.channel.send(message.content.replace('!say', ''))
 
     if message.content.startswith('!pokemon'):
-        pokemon = pokedex.get_pokemon_by_number(random.randint(1,807))[0]
-        await message.channel.send("Good fucking job, " + message.author.mention + " you caught " + pokemon['name'] + "!")
-        await message.channel.send(pokemon['sprite'])
+        pokemontime = read('pokemontime.json')
+        if storage[str(message.author.id)] < datetime.now():
+            pokemon = pokedex.get_pokemon_by_number(random.randint(1,807))[0]
+            await message.channel.send("Good fucking job, " + message.author.mention + " you caught " + pokemon['name'] + "!")
+            await message.channel.send(pokemon['sprite'])
+            pokemontime[str(message.author.id)] = datetime.now() + timedelta(minutes=60)
+        else:
+            await message.channel.send("You gotta wait " + str(pokemontime[str(message.author.id)] - datetime.now()) + " to catch another pokemon bro")
 
     if message.content.startswith('!message'):
         message = random.choice(message.channel.history(limit=300).flatten())
@@ -51,33 +80,68 @@ async def on_message(message):
             storage = json.load(f)
         await message.channel.send(storage[str(message.author.id)])
 
-    if message.content.startswith('!slideshow'):
+    #pokemon reminder
+    if message.content.startswith('!remindpokemon'):
         channel = message.channel
-        index = 0
-        left = '⏪'
-        right = '⏩'
-        list = ['page one', 'page two', 'page three', 'page four']
-        msg = await channel.send(list[0])
-        await msg.add_reaction(left)
-        await msg.add_reaction(right)
+        if message.content[-3:] == ' on':
+            remind = read('remind.json')
+            remind[str(message.author.id)] = True
+            write('remind.json', remind)
+            await channel.send("You will now receive notifications when pokemons are ready")
+        elif message.content[-3:] == 'off':
+            remind = read('remind.json')
+            remind[str(message.author.id)] = False
+            write('remind.json', remind)
+            await channel.send("You will no longer receive notifications when pokemons are ready")
+        else:
+            await message.channel.send("Please specify whether to turn this setting 'on' or 'off'")
 
-        def check(reaction, user):
-            return user == message.author
+    #snipe
+    if message.content.startswith('!snipe'):
+        try:
+            em = discord.Embed(name = f"Last deleted message in #{message.channel.name}", description = snipe_content[message.channel.id])
+            em.set_footer(text = f"This message was sent by {snipe_author[message.channel.id]}")
+            await message.channel.send(embed = em)
+        except KeyError:
+            await message.channel.send(f"Nobody deleted any shit")
+
+
+@client.event
+async def on_message_delete(message):
+    snipe_content[message.channel.id] = message.content
+    snipe_author[message.channel.id] = message.author
+    await asyncio.sleep(100)
+    del snipe_author[message.channel.id]
+    del snipe_content[message.channel.id]
+
+# commenting out for now because reactions result in rate limits
+    # if message.content.startswith('!slideshow'):
+    #     channel = message.channel
+    #     index = 0
+    #     left = '⏪'
+    #     right = '⏩'
+    #     list = ['page one', 'page two', 'page three', 'page four']
+    #     msg = await channel.send(list[0])
+    #     await msg.add_reaction(left)
+    #     await msg.add_reaction(right)
+
+    #     def check(reaction, user):
+    #         return user == message.author
         
-        while True:
-            reaction, user = await client.wait_for('reaction_add', timeout=10.0, check=check)
-            if (reaction.emoji == left and index != 0):
-                await msg.edit(content=list[index-1])
-                await msg.remove_reaction(left, user)
-                index -= 1
-            elif (reaction.emoji == left and index == 0):
-                await msg.remove_reaction(left, user)
-            elif (reaction.emoji == right and index != len(list) - 1):
-                await msg.edit(content=list[index+1])
-                await msg.remove_reaction(right, user)
-                index += 1
-            elif (reaction.emoji == right and index == len(list) - 1):
-                await msg.remove_reaction(right, user)
+    #     while True:
+    #         reaction, user = await client.wait_for('reaction_add', timeout=10.0, check=check)
+    #         if (reaction.emoji == left and index != 0):
+    #             await msg.edit(content=list[index-1])
+    #             await msg.remove_reaction(left, user)
+    #             index -= 1
+    #         elif (reaction.emoji == left and index == 0):
+    #             await msg.remove_reaction(left, user)
+    #         elif (reaction.emoji == right and index != len(list) - 1):
+    #             await msg.edit(content=list[index+1])
+    #             await msg.remove_reaction(right, user)
+    #             index += 1
+    #         elif (reaction.emoji == right and index == len(list) - 1):
+    #             await msg.remove_reaction(right, user)
 
 
 client.run('OTYyMDUyNTUzMjIxMjE4MzA0.YlB7Qg.UUspoQO4rq8_1ea-eOAYAxtUmmU')
