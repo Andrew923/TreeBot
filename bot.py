@@ -31,7 +31,7 @@ async def on_message(message):
         embed = message.embeds[0].to_dict()
         user = client.get_user(int(mention_search.findall(embed['description'])[0]))
         remind = read('remind.json')
-        if ("you've caught" in embed['description']) and (remind[str(user.id)]):
+        if ("you've caught" in embed['description']) and (remind[str(user.id)] == "yes"):
             await asyncio.sleep(3*60*60)
             await message.channel.send(f"{user.mention}, it is time for you to catch the pokemon")
     except IndexError:
@@ -40,13 +40,13 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if message.content.lower() == 'hello':
+    elif message.content.lower() == 'hello':
         await message.channel.send('Hello!')
 
-    if message.content.startswith('!say'):
+    elif message.content.startswith('!say'):
         await message.channel.send(message.content.replace('!say', ''))
 
-    if message.content.startswith('!pokemon'):
+    elif message.content.startswith('!pokemon'):
         pokemontime = read('pokemontime.json')
         if storage[str(message.author.id)] < datetime.now():
             pokemon = pokedex.get_pokemon_by_number(random.randint(1,807))[0]
@@ -56,17 +56,17 @@ async def on_message(message):
         else:
             await message.channel.send("You gotta wait " + str(pokemontime[str(message.author.id)] - datetime.now()) + " to catch another pokemon bro")
 
-    if message.content.startswith('!message'):
+    elif message.content.startswith('!message'):
         message = random.choice(message.channel.history(limit=300).flatten())
         await message.channel.send(message.content + '\n' + message.jump_url)
 
-    if message.content.startswith('!time'):
+    elif message.content.startswith('!time'):
         if (random.randint(1,3) != 1):
             await message.channel.send("The time is " + datetime.now().strftime("%H:%M:%S"))
         else:
             await message.channel.send("time for you to get a watch hahaha")
 
-    if message.content.startswith('!store'):
+    elif message.content.startswith('!store'):
         stored_message = message.content.replace('!store', '')
         with open('storage.json') as f:
             storage = json.load(f)
@@ -75,29 +75,29 @@ async def on_message(message):
             json.dump(storage, f)
         await message.channel.send("Stored: " + stored_message)
     
-    if message.content.startswith('!retrieve'):
+    elif message.content.startswith('!retrieve'):
         with open('storage.json') as f:
             storage = json.load(f)
         await message.channel.send(storage[str(message.author.id)])
 
     #pokemon reminder
-    if message.content.startswith('!remindpokemon'):
+    elif message.content.startswith('!remindpokemon'):
         channel = message.channel
         if message.content[-3:] == ' on':
             remind = read('remind.json')
-            remind[str(message.author.id)] = True
+            remind[str(message.author.id)] = "yes"
             write('remind.json', remind)
             await channel.send("You will now receive notifications when pokemons are ready")
         elif message.content[-3:] == 'off':
             remind = read('remind.json')
-            remind[str(message.author.id)] = False
+            remind[str(message.author.id)] = "nah"
             write('remind.json', remind)
             await channel.send("You will no longer receive notifications when pokemons are ready")
         else:
             await message.channel.send("Please specify whether to turn this setting 'on' or 'off'")
 
     #snipe
-    if message.content.startswith('!snipe'):
+    elif message.content.startswith('!snipe'):
         try:
             em = discord.Embed(name = f"Last deleted message in #{message.channel.name}", description = snipe_content[message.channel.id])
             em.set_footer(text = f"This message was sent by {snipe_author[message.channel.id]}")
