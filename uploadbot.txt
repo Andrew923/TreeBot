@@ -1,5 +1,0 @@
-cd (code filepath)
-git add .
-git commit -am "blah"
-git push heroku master
-PAUSE

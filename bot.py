@@ -6,6 +6,7 @@ import json
 import asyncio
 import re
 
+token = ''
 mention_search = re.compile('<@!?(\d+)>')
 client = discord.Client(intents=discord.Intents.all())
 pokedex = pokedex.Pokedex()
@@ -144,4 +145,4 @@ async def on_message_delete(message):
     #             await msg.remove_reaction(right, user)
 
 
-client.run('OTYyMDUyNTUzMjIxMjE4MzA0.YlB7Qg.UUspoQO4rq8_1ea-eOAYAxtUmmU')
+client.run(token)
