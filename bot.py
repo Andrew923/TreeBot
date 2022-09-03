@@ -6,6 +6,8 @@ import json
 import asyncio
 import re
 # import config
+# token = config.token
+token = os.environ.get('config.token')
 
 mention_search = re.compile('<@!?(\d+)>')
 client = discord.Client(intents=discord.Intents.all())
@@ -145,4 +147,4 @@ async def on_message_delete(message):
     #             await msg.remove_reaction(right, user)
 
 
-client.run(config.token)
+client.run(token)
