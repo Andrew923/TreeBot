@@ -5,9 +5,10 @@ from datetime import datetime
 import json
 import asyncio
 import re
+import os
 # import config
 # token = config.token
-token = os.environ.get('config.token')
+token = os.getenv('config.token')
 
 mention_search = re.compile('<@!?(\d+)>')
 client = discord.Client(intents=discord.Intents.all())
