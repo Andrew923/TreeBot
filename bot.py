@@ -6,9 +6,9 @@ import asyncio
 import re
 import os
 import discord
-import config
-token = config.token
-# token = os.getenv('config.token')
+# import config
+# token = config.token
+token = os.getenv('config.token')
 
 mention_search = re.compile('<@!?(\d+)>')
 client = discord.Client(intents=discord.Intents.all())
