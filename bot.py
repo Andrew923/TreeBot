@@ -5,8 +5,8 @@ from datetime import datetime
 import json
 import asyncio
 import re
+import config
 
-token = 'OTYyMDUyNTUzMjIxMjE4MzA0.GXRAb0.3Tgh_cN7GUAsrj_KwQyG8S0KTSmpBTHwzdBCGs'
 mention_search = re.compile('<@!?(\d+)>')
 client = discord.Client(intents=discord.Intents.all())
 pokedex = pokedex.Pokedex()
@@ -145,4 +145,4 @@ async def on_message_delete(message):
     #             await msg.remove_reaction(right, user)
 
 
-client.run(token)
+client.run(config.token)
