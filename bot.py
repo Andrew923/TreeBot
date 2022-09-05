@@ -6,25 +6,43 @@ import asyncio
 import re
 import os
 import discord
-# import config
-# token = config.token
-token = os.getenv('config.token')
+from github import Github
+# comment out between uploading
+import config
+token = config.discord_token
+github = Github(config.github_token)
+repository = github.get_user().get_repo('TreeBot')
+
+# token = os.getenv('config.token')
 
 mention_search = re.compile('<@!?(\d+)>')
 client = discord.Client(intents=discord.Intents.all())
 pokedex = pokedex.Pokedex()
 snipe_author = {}
 snipe_content = {}
+editsnipe_before = {}
+editsnipe_after = {}
+editsnipe_author = {}
 pin_from = []
 pin_to = []  
 
-def read(file):
-    with open(file) as f:
-        return json.load(f)
+#old read and write functions for json files locally
+# def read(file):
+#     with open(file) as f:
+#         return json.load(f)
 
-def write(file, dictionary):
-    with open(file, 'w') as f:
-        json.dump(dictionary, f)
+# def write(file, dictionary):
+#     with open(file, 'w') as f:
+#         json.dump(dictionary, f)
+
+#new read and write functions for
+def read(filename):
+    file = repository.get_contents(filename)
+    return json.loads(file.decoded_content.decode())
+
+def update(filename, dictionary, message='updated from python'):
+    contents = repository.get_contents(filename)
+    repository.update_file(contents.path, message, str(dictionary), contents.sha)
 
 
 @client.event
@@ -60,6 +78,7 @@ async def on_message(message):
         embed.add_field(name='!retrieve', value='retrieve your stored stuff')
         embed.add_field(name='!remindpokemon', value='receive reminders for when you can catch pokemon from Toasty')
         embed.add_field(name='!snipe', value='see recently deleted messages')
+        embed.add_field(name='!editsnipe', value='see recently edited messages')
         embed.add_field(name='!pin', value="specify 'from' or 'to' to get pinned messages from one channel sent to another")
 
         await message.channel.send(embed=embed)
@@ -92,16 +111,13 @@ async def on_message(message):
 
     elif message.content.startswith('!store'):
         stored_message = message.content.replace('!store', '')
-        with open('storage.json') as f:
-            storage = json.load(f)
+        storage = read('storage.json')
         storage[str(message.author.id)] = stored_message
-        with open('storage.json', 'w') as f:
-            json.dump(storage, f)
+        update('storage.json', storage)
         await message.channel.send("Stored: " + stored_message)
     
     elif message.content.startswith('!retrieve'):
-        with open('storage.json') as f:
-            storage = json.load(f)
+        storage = read('storage.json')
         try:
             await message.channel.send(storage[str(message.author.id)])
         except KeyError:
@@ -115,12 +131,12 @@ async def on_message(message):
         if message.content[-3:] == ' on':
             remind = read('remind.json')
             remind[str(message.author.id)] = "yes"
-            write('remind.json', remind)
+            update('remind.json', remind)
             await channel.send("You will now receive notifications when pokemons are ready")
         elif message.content[-3:] == 'off':
             remind = read('remind.json')
             remind[str(message.author.id)] = "nah"
-            write('remind.json', remind)
+            update('remind.json', remind)
             await channel.send("You will no longer receive notifications when pokemons are ready")
         else:
             await message.channel.send("Please specify whether to turn this setting 'on' or 'off'")
@@ -133,7 +149,17 @@ async def on_message(message):
             await message.channel.send(embed = em)
         except KeyError:
             await message.channel.send("Nobody deleted any shit")
-
+    #editsnipe
+    elif message.content.startswith('!editsnipe'):
+        try:
+            em = discord.Embed(title = f"Last edited message in #{message.channel.name}")
+            em.add_field(name='Before:', value = editsnipe_before[message.channel.id])
+            em.add_field(name='After:', value = editsnipe_after[message.channel.id])
+            em.set_footer(text = f"This message was sent by {snipe_author[message.channel.id]}")
+            await message.channel.send(embed = em)
+        except KeyError:
+            await message.channel.send("No edits")
+    #pins
     elif message.content.startswith('!pin'):
         if 'from' in message.content:
             pin_from.append(message.channel.id)
@@ -144,14 +170,25 @@ async def on_message(message):
 
 @client.event
 async def on_message_delete(message):
+    #snipe (for deleted messages)
     snipe_content[message.channel.id] = message.content
     snipe_author[message.channel.id] = message.author
-    await asyncio.sleep(100)
+    await asyncio.sleep(120)
     del snipe_author[message.channel.id]
     del snipe_content[message.channel.id]
 
 @client.event
 async def on_message_edit(before, after):
+    #edit snipe (check if content changed)
+    if before.content != after.content:
+        editsnipe_before[before.channel.id] = before.content
+        editsnipe_after[before.channel.id] = after.content
+        editsnipe_author[before.channel.id] = before.author
+        await asyncio.sleep(120)
+        del editsnipe_before[before.channel.id]
+        del editsnipe_after[before.channel.id]
+        del editsnipe_author[before.channel.id]
+    #pins (check if something pinned)
     if not before.pinned and after.pinned:
         channel = after.channel
         if(channel.id in pin_from):
