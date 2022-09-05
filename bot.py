@@ -8,13 +8,14 @@ import os
 import discord
 from github import Github
 # comment out between uploading
-import config
-token = config.discord_token
-github = Github(config.github_token)
+# import config
+# token = config.discord_token
+# github = Github(config.github_token)
+
+token = os.getenv('config.token')
+github = Github(os.getenv('github_token'))
+
 repository = github.get_user().get_repo('TreeBot')
-
-# token = os.getenv('config.token')
-
 mention_search = re.compile('<@!?(\d+)>')
 client = discord.Client(intents=discord.Intents.all())
 pokedex = pokedex.Pokedex()
