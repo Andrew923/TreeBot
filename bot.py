@@ -1,19 +1,18 @@
 import random
 from pokedex import pokedex
 from datetime import datetime
-import json
 import asyncio
 import re
 import os
 import discord
 from github import Github
 # comment out between uploading
-# import config
-# token = config.discord_token
-# github = Github(config.github_token)
+import config
+token = config.discord_token
+github = Github(config.github_token)
 
-token = os.getenv('config.token')
-github = Github(os.getenv('github_token'))
+# token = os.getenv('config.token')
+# github = Github(os.getenv('github_token'))
 
 repository = github.get_user().get_repo('TreeBot')
 mention_search = re.compile('<@!?(\d+)>')
@@ -27,19 +26,10 @@ editsnipe_author = {}
 pin_from = []
 pin_to = []  
 
-#old read and write functions for json files locally
-# def read(file):
-#     with open(file) as f:
-#         return json.load(f)
-
-# def write(file, dictionary):
-#     with open(file, 'w') as f:
-#         json.dump(dictionary, f)
-
-#new read and write functions for
+#new read and udpate functions for updating github repo
 def read(filename):
     file = repository.get_contents(filename)
-    return json.loads(file.decoded_content.decode())
+    return eval(file.decoded_content.decode())
 
 def update(filename, dictionary, message='updated from python'):
     contents = repository.get_contents(filename)
@@ -88,7 +78,7 @@ async def on_message(message):
         await message.channel.send('Hello!')
 
     elif message.content.startswith('!say'):
-        await message.channel.send(message.content.replace('!say', ''))
+        await message.channel.send(message.content.replace('!say ', ''))
 
     elif message.content.startswith('!pokemon'):
         pokemontime = read('pokemontime.json')
@@ -111,7 +101,7 @@ async def on_message(message):
             await message.channel.send("time for you to get a watch hahaha")
 
     elif message.content.startswith('!store'):
-        stored_message = message.content.replace('!store', '')
+        stored_message = message.content.replace('!store ', '')
         storage = read('storage.json')
         storage[str(message.author.id)] = stored_message
         update('storage.json', storage)
