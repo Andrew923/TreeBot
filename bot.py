@@ -1,18 +1,18 @@
 import random
 from pokedex import pokedex
-from datetime import datetime
+import datetime
 import asyncio
 import re
 import os
 import discord
 from github import Github
 # comment out between uploading
-# import config
-# token = config.discord_token
-# github = Github(config.github_token)
+import config
+token = config.discord_token
+github = Github(config.github_token)
 
-token = os.getenv('config.token')
-github = Github(os.getenv('github_token'))
+# token = os.getenv('config.token')
+# github = Github(os.getenv('github_token'))
 
 repository = github.get_user().get_repo('TreeBot')
 mention_search = re.compile('<@!?(\d+)>')
@@ -54,7 +54,7 @@ async def on_message(message):
 
     if message.author == client.user:
         return
-    
+    #display help message with all commands
     elif message.content.startswith('!help'):
         embed=discord.Embed(color=0x03c6fc)
         embed.set_author(name="Tree Commands:", icon_url="http://clipart-library.com/img1/1269981.png",
@@ -82,21 +82,30 @@ async def on_message(message):
 
     elif message.content.startswith('!pokemon'):
         pokemontime = read('pokemontime.json')
-        if storage[str(message.author.id)] < datetime.now():
+        try:
+            if pokemontime[str(message.author.id)] < datetime.datetime.now():
+                pokemon = pokedex.get_pokemon_by_number(random.randint(1,807))[0]
+                await message.channel.send("Good job, " + message.author.mention + " you caught " + pokemon['name'] + "!")
+                await message.channel.send(pokemon['sprite'])
+                pokemontime[str(message.author.id)] = datetime.datetimenow() + datetime.timedelta(minutes=60)
+                update('pokemontime.json', pokemontime)
+            else:
+                time = datetime.datetime.strptime(str(pokemontime[str(message.author.id)] - datetime.datetime.now()), '%H:%M:%S.%f')
+                await message.channel.send("You gotta wait " + time.strftime('%#M minutes and %#S seconds') + " to catch another pokemon bro")
+        except KeyError:
             pokemon = pokedex.get_pokemon_by_number(random.randint(1,807))[0]
-            await message.channel.send("Good fucking job, " + message.author.mention + " you caught " + pokemon['name'] + "!")
+            await message.channel.send("Good job, " + message.author.mention + " you caught " + pokemon['name'] + "!")
             await message.channel.send(pokemon['sprite'])
-            pokemontime[str(message.author.id)] = datetime.now() + timedelta(minutes=60)
-        else:
-            await message.channel.send("You gotta wait " + str(pokemontime[str(message.author.id)] - datetime.now()) + " to catch another pokemon bro")
+            pokemontime[str(message.author.id)] = datetime.datetime.now() + datetime.timedelta(minutes=60)
+            update('pokemontime.json', pokemontime)
 
     elif message.content.startswith('!random message' or '!randommessage'):
         message = random.choice(message.channel.history(limit=300).flatten())
         await message.channel.send(message.content + '\n' + message.jump_url)
 
-    elif message.content.startswith('!time'):
+    elif message.content.startswith('!time' or 'what time is it' or "what's the time"):
         if (random.randint(1,3) != 1):
-            await message.channel.send("The time is " + datetime.now().strftime("%H:%M:%S"))
+            await message.channel.send("The time is " + datetime.datetime.now().strftime("%#I:%M:%S %p"))
         else:
             await message.channel.send("time for you to get a watch hahaha")
 
@@ -140,6 +149,7 @@ async def on_message(message):
             await message.channel.send(embed = em)
         except KeyError:
             await message.channel.send("Nobody deleted any shit")
+    
     #editsnipe
     elif message.content.startswith('!editsnipe'):
         try:
@@ -150,6 +160,7 @@ async def on_message(message):
             await message.channel.send(embed = em)
         except KeyError:
             await message.channel.send("No edits")
+    
     #pins
     elif message.content.startswith('!pin'):
         if 'from' in message.content:
@@ -159,9 +170,9 @@ async def on_message(message):
             pin_to.append(message.channel.id)
             await message.channel.send('Pins will be posted to this channel')
 
+#snipe (for deleted messages)
 @client.event
 async def on_message_delete(message):
-    #snipe (for deleted messages)
     snipe_content[message.channel.id] = message.content
     snipe_author[message.channel.id] = message.author
     await asyncio.sleep(120)
