@@ -6,13 +6,17 @@ import re
 import os
 import discord
 from github import Github
+import dateparser
+from gcsa.event import Event
+from gcsa.google_calendar import GoogleCalendar
+calendar = GoogleCalendar('acyu@andrew.cmu.edu')
 # comment out between uploading
-import config
-token = config.discord_token
-github = Github(config.github_token)
+# import config
+# token = config.discord_token
+# github = Github(config.github_token)
 
-# token = os.getenv('config.token')
-# github = Github(os.getenv('github_token'))
+token = os.getenv('config.token')
+github = Github(os.getenv('github_token'))
 
 repository = github.get_user().get_repo('TreeBot')
 mention_search = re.compile('<@!?(\d+)>')
@@ -70,7 +74,8 @@ async def on_message(message):
         embed.add_field(name='!snipe', value='see recently deleted messages')
         embed.add_field(name='!editsnipe', value='see recently edited messages')
         embed.add_field(name='!pin', value="specify 'from' or 'to' to get pinned messages from one channel sent to another")
-        embed.add_field(name=empty_char, value="See the ReadMe [here](https://github.com/Andrew923/TreeBot#readme)", inline=False)
+        embed.add_field(name='!remind', value='be reminded of something')
+        embed.add_field(name=empty_char, value="See the ReadMe [here](https://github.com/Andrew923/TreeBot#readme) to view usage syntax", inline=False)
         await message.channel.send(embed=embed)
 
     elif message.content.lower() == 'hello':
@@ -172,6 +177,17 @@ async def on_message(message):
             pins['to'].append(message.channel.id)
             update('pins.json', pins)
             await message.channel.send('Pins will be posted to this channel')
+    
+    elif message.content.startswith('!remind'):
+        s = message.content.replace('!remind', '')
+        time, reminder = dateparser.parse(s[:s.find(',')]), s[s.find(',') + 1:]
+        await asyncio.sleep(int((time - datetime.datetime.now()).total_seconds()))
+        await message.channel.send(f"{message.author.mention} {reminder}")
+
+    elif message.content.startswith('!event'):
+        s = message.content.replace('!event', '')
+        time, reminder = dateparser.parse(s[:s.find(',')]), s[s.find(',') + 1:]
+        calendar.add_event(Event(reminder, start = time))
 
 #snipe (for deleted messages)
 @client.event
@@ -204,36 +220,6 @@ async def on_message_edit(before, after):
             embed.add_field(name=empty_char, value=f"[Jump to Message]({after.jump_url})")
             await client.get_channel(pins['to'][pins['from'].index(channel.id)]).send(embed=embed)
             await after.unpin()
-
-
-# commenting out for now because reactions result in rate limits
-    # if message.content.startswith('!slideshow'):
-    #     channel = message.channel
-    #     index = 0
-    #     left = '⏪'
-    #     right = '⏩'
-    #     list = ['page one', 'page two', 'page three', 'page four']
-    #     msg = await channel.send(list[0])
-    #     await msg.add_reaction(left)
-    #     await msg.add_reaction(right)
-
-    #     def check(reaction, user):
-    #         return user == message.author
-        
-    #     while True:
-    #         reaction, user = await client.wait_for('reaction_add', timeout=10.0, check=check)
-    #         if (reaction.emoji == left and index != 0):
-    #             await msg.edit(content=list[index-1])
-    #             await msg.remove_reaction(left, user)
-    #             index -= 1
-    #         elif (reaction.emoji == left and index == 0):
-    #             await msg.remove_reaction(left, user)
-    #         elif (reaction.emoji == right and index != len(list) - 1):
-    #             await msg.edit(content=list[index+1])
-    #             await msg.remove_reaction(right, user)
-    #             index += 1
-    #         elif (reaction.emoji == right and index == len(list) - 1):
-    #             await msg.remove_reaction(right, user)
 
 
 client.run(token)
