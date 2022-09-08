@@ -9,7 +9,17 @@ from github import Github
 import dateparser
 from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
-calendar = GoogleCalendar('acyu@andrew.cmu.edu')
+from google.oauth2.credentials import Credentials
+
+token = Credentials(
+    token=os.getenv('token'),
+    refresh_token=os.getenv('refresh_token'),
+    client_id=os.getenv('client_id'),
+    client_secret=os.getenv('client_secret'),
+    scopes=['https://www.googleapis.com/auth/calendar'],
+    token_uri='https://oauth2.googleapis.com/token'
+)
+calendar = GoogleCalendar(credentials=token)
 # comment out between uploading
 # import config
 # token = config.discord_token
