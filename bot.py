@@ -7,12 +7,12 @@ import os
 import discord
 from github import Github
 # comment out between uploading
-# import config
-# token = config.discord_token
-# github = Github(config.github_token)
+import config
+token = config.discord_token
+github = Github(config.github_token)
 
-token = os.getenv('config.token')
-github = Github(os.getenv('github_token'))
+# token = os.getenv('config.token')
+# github = Github(os.getenv('github_token'))
 
 repository = github.get_user().get_repo('TreeBot')
 mention_search = re.compile('<@!?(\d+)>')
@@ -23,8 +23,7 @@ snipe_content = {}
 editsnipe_before = {}
 editsnipe_after = {}
 editsnipe_author = {}
-pin_from = []
-pin_to = []  
+empty_char = '\u200b'
 
 #new read and udpate functions for updating github repo
 def read(filename):
@@ -71,7 +70,7 @@ async def on_message(message):
         embed.add_field(name='!snipe', value='see recently deleted messages')
         embed.add_field(name='!editsnipe', value='see recently edited messages')
         embed.add_field(name='!pin', value="specify 'from' or 'to' to get pinned messages from one channel sent to another")
-
+        embed.add_field(name=empty_char, value="See the ReadMe [here](https://github.com/Andrew923/TreeBot#readme)", inline=False)
         await message.channel.send(embed=embed)
 
     elif message.content.lower() == 'hello':
@@ -156,7 +155,7 @@ async def on_message(message):
             em = discord.Embed(title = f"Last edited message in #{message.channel.name}")
             em.add_field(name='Before:', value = editsnipe_before[message.channel.id])
             em.add_field(name='After:', value = editsnipe_after[message.channel.id])
-            em.set_footer(text = f"This message was sent by {snipe_author[message.channel.id]}")
+            em.set_footer(text = f"This message was edited by {editsnipe_author[message.channel.id]}")
             await message.channel.send(embed = em)
         except KeyError:
             await message.channel.send("No edits")
@@ -164,10 +163,14 @@ async def on_message(message):
     #pins
     elif message.content.startswith('!pin'):
         if 'from' in message.content:
-            pin_from.append(message.channel.id)
+            pins = read('pins.json')
+            pins['from'].append(message.channel.id)
+            update('pins.json', pins)
             await message.channel.send('Pins will be read from this channel')
         elif 'to' in message.content:
-            pin_to.append(message.channel.id)
+            pins = read('pins.json')
+            pins['to'].append(message.channel.id)
+            update('pins.json', pins)
             await message.channel.send('Pins will be posted to this channel')
 
 #snipe (for deleted messages)
@@ -186,6 +189,7 @@ async def on_message_edit(before, after):
         editsnipe_before[before.channel.id] = before.content
         editsnipe_after[before.channel.id] = after.content
         editsnipe_author[before.channel.id] = before.author
+        print(editsnipe_before, editsnipe_after, editsnipe_author)
         await asyncio.sleep(120)
         del editsnipe_before[before.channel.id]
         del editsnipe_after[before.channel.id]
@@ -193,18 +197,14 @@ async def on_message_edit(before, after):
     #pins (check if something pinned)
     if not before.pinned and after.pinned:
         channel = after.channel
-        if(channel.id in pin_from):
+        pins = read('pins.json')
+        if(channel.id in pins['from']):
             embed=discord.Embed(color=0x03c6fc, description=after.content)
             embed.set_author(name=after.author.display_name, icon_url=after.author.avatar)
-            await client.get_channel(pin_to[pin_from.index(channel.id)]).send(embed=embed)
+            embed.add_field(name=empty_char, value=f"[Jump to Message]({after.jump_url})")
+            await client.get_channel(pins['to'][pins['from'].index(channel.id)]).send(embed=embed)
             await after.unpin()
 
-# @client.event
-# async def on_guild_channel_pins_update(channel, last_pin):
-#     print(f"channel: {channel}, {channel.id}, {pin_from}, {pin_to}")
-#     if(channel.id in pin_from):
-#         print(last_pin)
-#         await pin_to[pin_from.index(channel.id)].send(last_pin.content)
 
 # commenting out for now because reactions result in rate limits
     # if message.content.startswith('!slideshow'):

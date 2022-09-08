@@ -21,3 +21,5 @@ TreeBot is a Discord bot that has cool entertainment and moderation commands. Yo
 | retrieve | Retrieve whatever you previously stored | `!retrieve` |
 | remindpokemon | Receieve reminders for when you can catch pokemon from the <a href="https://toastybot.com/" target="_blank">Toasty bot</a> | `!remindpokemon <on / off>` |
 | snipe | See recently deleted messages | `!snipe` |
+| editsnipe | See recently edited messages | `!editsnipe` |
+| pin | Redirect pinned messages from one channel to another to overcome Discord's 50 pin limit. Use `!pin from` in the channel to watch for pins in and `!pin to` in the channel to forward pins to| `!pin <from / to>` |
