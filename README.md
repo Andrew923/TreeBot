@@ -1,7 +1,8 @@
-<center><br>
+<center>
 <img src="http://clipart-library.com/img1/1269981.png" alt="TreeBot picture" width="100">
 <h1>TreeBot</h1>
 </center>
+
 ## About
 TreeBot is a Discord bot that has cool entertainment and moderation commands. You can invite TreeBot to your server with <a href="https://discord.com/api/oauth2/authorize?client_id=962052553221218304&permissions=8&scope=bot" target="_blank">this link!</a>
 
