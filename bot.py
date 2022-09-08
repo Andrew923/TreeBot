@@ -198,6 +198,7 @@ async def on_message(message):
         s = message.content.replace('!event', '')
         time, reminder = dateparser.parse(s[:s.find(',')]), s[s.find(',') + 1:]
         calendar.add_event(Event(reminder, start = time))
+        await message.channel.send("Event created")
 
 #snipe (for deleted messages)
 @client.event
