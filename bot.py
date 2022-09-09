@@ -13,23 +13,23 @@ from gcsa.google_calendar import GoogleCalendar
 from google.oauth2.credentials import Credentials
 
 # comment out between uploading
-# import config
-# token = config.discord_token
-# github = Github(config.github_token)
-# calendar = GoogleCalendar("andrewyu41213@gmail.com")
+import config
+token = config.discord_token
+github = Github(config.github_token)
+calendar = GoogleCalendar("andrewyu41213@gmail.com")
 
 
-token = Credentials(
-    token=os.getenv('token'),
-    refresh_token=os.getenv('refresh_token'),
-    client_id=os.getenv('client_id'),
-    client_secret=os.getenv('client_secret'),
-    scopes=['https://www.googleapis.com/auth/calendar'],
-    token_uri='https://oauth2.googleapis.com/token'
-)
-calendar = GoogleCalendar(credentials=token)
-token = os.getenv('config.token')
-github = Github(os.getenv('github_token'))
+# token = Credentials(
+#     token=os.getenv('token'),
+#     refresh_token=os.getenv('refresh_token'),
+#     client_id=os.getenv('client_id'),
+#     client_secret=os.getenv('client_secret'),
+#     scopes=['https://www.googleapis.com/auth/calendar'],
+#     token_uri='https://oauth2.googleapis.com/token'
+# )
+# calendar = GoogleCalendar(credentials=token)
+# token = os.getenv('config.token')
+# github = Github(os.getenv('github_token'))
 
 
 repository = github.get_user().get_repo('TreeBot')
@@ -54,6 +54,13 @@ def update(filename, dictionary, message='updated from python'):
 
 def parseDate(string):
     return dateparser.parse(string).astimezone(EDT)
+
+def removeCommand(string):
+    index = None
+    for c in string:
+        if(c.isspace()):
+            index = string.index(c)
+    return string[index + 1:] if index != None else None
 
 @client.event
 async def on_ready():
@@ -98,7 +105,7 @@ async def on_message(message):
         await message.channel.send('Hello!')
 
     elif message.content.startswith('!say'):
-        await message.channel.send(message.content.replace('!say ', ''))
+        await message.channel.send(removeCommand(message.content))
 
     elif message.content.startswith('!pokemon'):
         pokemontime = read('pokemontime.json')
@@ -130,7 +137,7 @@ async def on_message(message):
             await message.channel.send("time for you to get a watch hahaha")
 
     elif message.content.startswith('!store'):
-        stored_message = message.content.replace('!store ', '')
+        stored_message = removeCommand(message.content)
         storage = read('storage.json')
         storage[str(message.author.id)] = stored_message
         update('storage.json', storage)
@@ -194,8 +201,8 @@ async def on_message(message):
             update('pins.json', pins)
             await message.channel.send('Pins will be posted to this channel')
     
-    elif message.content.startswith('!remind'):
-        s = message.content.replace('!remind', '')
+    elif message.content.startswith('!remind' or '!reminder'):
+        s = removeCommand(message.content)
         time, reminder = parseDate(s[:s.find(',')]), s[s.find(',') + 1:]
         await asyncio.sleep(int((time - datetime.datetime.now()).total_seconds()))
         await message.channel.send(f"{message.author.mention} {reminder}")
@@ -204,7 +211,7 @@ async def on_message(message):
         if(',' not in message.content):
             await message.channel.send("Please use a comma to separate the event time and event title")
         elif(message.content.count(',') > 1):
-            s = message.content.replace('!event', '')
+            s = removeCommand(message.content)
             start, s = parseDate(s[:s.find(',')]), s[s.find(',') + 1:]
             end, title = parseDate(s[:s.find(',')]), s[s.find(',') + 1:]
             calendar.add_event(Event(title, start = start, end = end))
@@ -212,32 +219,77 @@ async def on_message(message):
             embed.add_field(name=title,value=f"From: {start.strftime('%#m/%#d %#I:%M %p')}\nTo: {end.strftime('%#m/%#d %#I:%M %p')}")
             await message.channel.send(embed=embed)
         else:
-            s = message.content.replace('!event', '')
+            s = removeCommand(message.content)
             time, title = parseDate(s[:s.find(',')]).date(), s[s.find(',') + 1:]
             calendar.add_event(Event(title, start = time, end = time+datetime.timedelta(days=1)))
             embed = discord.Embed(color=0x03c6fc, title='New Event')
             embed.add_field(name=title,value=f"Date: {time.strftime('%#m/%#d')}")
             await message.channel.send(embed=embed)
-
-    elif message.content.startswith('!schedule'):
-        s = message.content.replace('!schedule', '')
-        if(s.isspace()):
-            eventcount = 0
-            today = datetime.datetime.now().astimezone(EDT).date()
-            for event in calendar[today:today]: eventcount += 1
-            s = '' if(eventcount == 1) else 's'
-            embed = discord.Embed(color=0x03c6fc, title='Schedule', description=f"{eventcount} event{s} today")
-            for event in calendar[today:today]:
-                if(event.location == None):
-                    embed.add_field(name=event.summary,
-                        value = f"From: {event.start.strftime('%#I:%M %p')}\nTo: {event.end.strftime('%#I:%M %p')}" ,inline=False)
-                else:
-                    embed.add_field(name=event.summary,
-                        value = f"Location: {event.location}\nFrom: {event.start.strftime('%#I:%M %p')}\nTo: {event.end.strftime('%#I:%M %p')}" ,inline=False)
+    
+    elif message.content.startswith('!delete' or '!deleteevent'):
+        s = removeCommand(message.content)
+        channel = message.channel
+        if(s == None):
+            day = datetime.datetime.now().astimezone(EDT).date()
+        else:
+            day = parseDate(s).date()
+        eventcount = 0
+        embed = discord.Embed(color=0x03c6fc, title='Delete which event?', description='Type the number corresponding to the event')
+        count = 0
+        for event in calendar[day:day]:
+            count += 1
+            if(event.location == None):
+                embed.add_field(name=f"{count} " + event.summary,
+                    value = f"From: {event.start.strftime('%#I:%M %p')}\nTo: {event.end.strftime('%#I:%M %p')}" ,inline=False)
+            else:
+                embed.add_field(name=f"{count} " + event.summary,
+                    value = f"Location: {event.location}\nFrom: {event.start.strftime('%#I:%M %p')}\nTo: {event.end.strftime('%#I:%M %p')}" ,inline=False)   
+        embed.set_footer(text="Type 'Cancel' to stop")
+        await message.channel.send(embed=embed)
+        def check(m):
+            if(m.content.lower() == 'cancel'):
+                return True
+            return m.content.isdigit() and m.channel == channel and (int(m.content) <= count)
+        msg = await client.wait_for('message', check=check)
+        if(msg.content.lower() == 'cancel'):
+            await message.channel.send("Cancelled")
+        else:
+            msg = int(msg.content)
+            count = 0
+            for event in calendar[day:day]:
+                count += 1
+                if(count == msg):
+                    calendar.delete_event(event)
+                    title, time = event.summary, event.start       
+            embed = discord.Embed(color=0x03c6fc, title='Event Deleted')
+            embed.add_field(name=title,value=f"Date: {time.strftime('%#m/%#d')}")
             await message.channel.send(embed=embed)
 
-def eventEmbed(event):
-    embed = discord.Embed(color=0x03c6fc, title='idk')
+    elif message.content.startswith('!schedule'):
+        s = removeCommand(message.content)
+        if(s == None):
+            day = datetime.datetime.now().astimezone(EDT).date()
+        else:
+            day = parseDate(s).date()
+        eventcount = 0
+        for event in calendar[day:day]: eventcount += 1
+        s = '' if(eventcount == 1) else 's'
+        embed = discord.Embed(color=0x03c6fc, title='Schedule', description=f"{eventcount} event{s} on {day.strftime('%#m/%#d')}")
+        for event in calendar[day:day]:
+            if(event.location == None):
+                embed.add_field(name=event.summary,
+                    value = f"From: {event.start.strftime('%#I:%M %p')}\nTo: {event.end.strftime('%#I:%M %p')}" ,inline=False)
+            else:
+                embed.add_field(name=event.summary,
+                    value = f"Location: {event.location}\nFrom: {event.start.strftime('%#I:%M %p')}\nTo: {event.end.strftime('%#I:%M %p')}" ,inline=False)
+        await message.channel.send(embed=embed)
+
+    elif message.content.startswith('!python') and message.author.id == 177962211841540097:
+        try:
+            await message.channel.send(eval(removeCommand(message.content)))
+        except:
+            await message.channel.send("Something went wrong")
+
 
 
 #snipe (for deleted messages)
