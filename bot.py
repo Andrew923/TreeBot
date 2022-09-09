@@ -7,9 +7,17 @@ import os
 import discord
 from github import Github
 import dateparser
+EDT = datetime.timezone(datetime.timedelta(hours=-4))
 from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
 from google.oauth2.credentials import Credentials
+
+# comment out between uploading
+# import config
+# token = config.discord_token
+# github = Github(config.github_token)
+# calendar = GoogleCalendar("andrewyu41213@gmail.com")
+
 
 token = Credentials(
     token=os.getenv('token'),
@@ -20,13 +28,9 @@ token = Credentials(
     token_uri='https://oauth2.googleapis.com/token'
 )
 calendar = GoogleCalendar(credentials=token)
-# comment out between uploading
-# import config
-# token = config.discord_token
-# github = Github(config.github_token)
-
 token = os.getenv('config.token')
 github = Github(os.getenv('github_token'))
+
 
 repository = github.get_user().get_repo('TreeBot')
 mention_search = re.compile('<@!?(\d+)>')
@@ -48,6 +52,8 @@ def update(filename, dictionary, message='updated from python'):
     contents = repository.get_contents(filename)
     repository.update_file(contents.path, message, str(dictionary), contents.sha)
 
+def parseDate(string):
+    return dateparser.parse(string).astimezone(EDT)
 
 @client.event
 async def on_ready():
@@ -119,7 +125,7 @@ async def on_message(message):
 
     elif message.content.startswith('!time' or 'what time is it' or "what's the time"):
         if (random.randint(1,3) != 1):
-            await message.channel.send("The time is " + datetime.datetime.now().strftime("%#I:%M:%S %p"))
+            await message.channel.send("The time is " + datetime.datetime.now().astimezone(EDT).strftime("%#I:%M %p"))
         else:
             await message.channel.send("time for you to get a watch hahaha")
 
@@ -158,7 +164,7 @@ async def on_message(message):
     #snipe
     elif message.content.startswith('!snipe'):
         try:
-            em = discord.Embed(title = f"Last deleted message in #{message.channel.name}", description = snipe_content[message.channel.id])
+            em = discord.Embed(color=0x03c6fc, title = f"Last deleted message in #{message.channel.name}", description = snipe_content[message.channel.id])
             em.set_footer(text = f"This message was sent by {snipe_author[message.channel.id]}")
             await message.channel.send(embed = em)
         except KeyError:
@@ -167,7 +173,7 @@ async def on_message(message):
     #editsnipe
     elif message.content.startswith('!editsnipe'):
         try:
-            em = discord.Embed(title = f"Last edited message in #{message.channel.name}")
+            em = discord.Embed(color=0x03c6fc, title = f"Last edited message in #{message.channel.name}")
             em.add_field(name='Before:', value = editsnipe_before[message.channel.id])
             em.add_field(name='After:', value = editsnipe_after[message.channel.id])
             em.set_footer(text = f"This message was edited by {editsnipe_author[message.channel.id]}")
@@ -190,15 +196,49 @@ async def on_message(message):
     
     elif message.content.startswith('!remind'):
         s = message.content.replace('!remind', '')
-        time, reminder = dateparser.parse(s[:s.find(',')]), s[s.find(',') + 1:]
+        time, reminder = parseDate(s[:s.find(',')]), s[s.find(',') + 1:]
         await asyncio.sleep(int((time - datetime.datetime.now()).total_seconds()))
         await message.channel.send(f"{message.author.mention} {reminder}")
 
     elif message.content.startswith('!event'):
-        s = message.content.replace('!event', '')
-        time, reminder = dateparser.parse(s[:s.find(',')]), s[s.find(',') + 1:]
-        calendar.add_event(Event(reminder, start = time))
-        await message.channel.send("Event created")
+        if(',' not in message.content):
+            await message.channel.send("Please use a comma to separate the event time and event title")
+        elif(message.content.count(',') > 1):
+            s = message.content.replace('!event', '')
+            start, s = parseDate(s[:s.find(',')]), s[s.find(',') + 1:]
+            end, title = parseDate(s[:s.find(',')]), s[s.find(',') + 1:]
+            calendar.add_event(Event(title, start = start, end = end))
+            embed = discord.Embed(color=0x03c6fc, title='New Event')
+            embed.add_field(name=title,value=f"From: {start.strftime('%#m/%#d %#I:%M %p')}\nTo: {end.strftime('%#m/%#d %#I:%M %p')}")
+            await message.channel.send(embed=embed)
+        else:
+            s = message.content.replace('!event', '')
+            time, title = parseDate(s[:s.find(',')]).date(), s[s.find(',') + 1:]
+            calendar.add_event(Event(title, start = time, end = time+datetime.timedelta(days=1)))
+            embed = discord.Embed(color=0x03c6fc, title='New Event')
+            embed.add_field(name=title,value=f"Date: {time.strftime('%#m/%#d')}")
+            await message.channel.send(embed=embed)
+
+    elif message.content.startswith('!schedule'):
+        s = message.content.replace('!schedule', '')
+        if(s.isspace()):
+            eventcount = 0
+            today = datetime.datetime.now().astimezone(EDT).date()
+            for event in calendar[today:today]: eventcount += 1
+            s = '' if(eventcount == 1) else 's'
+            embed = discord.Embed(color=0x03c6fc, title='Schedule', description=f"{eventcount} event{s} today")
+            for event in calendar[today:today]:
+                if(event.location == None):
+                    embed.add_field(name=event.summary,
+                        value = f"From: {event.start.strftime('%#I:%M %p')}\nTo: {event.end.strftime('%#I:%M %p')}" ,inline=False)
+                else:
+                    embed.add_field(name=event.summary,
+                        value = f"Location: {event.location}\nFrom: {event.start.strftime('%#I:%M %p')}\nTo: {event.end.strftime('%#I:%M %p')}" ,inline=False)
+            await message.channel.send(embed=embed)
+
+def eventEmbed(event):
+    embed = discord.Embed(color=0x03c6fc, title='idk')
+
 
 #snipe (for deleted messages)
 @client.event
@@ -216,7 +256,6 @@ async def on_message_edit(before, after):
         editsnipe_before[before.channel.id] = before.content
         editsnipe_after[before.channel.id] = after.content
         editsnipe_author[before.channel.id] = before.author
-        print(editsnipe_before, editsnipe_after, editsnipe_author)
         await asyncio.sleep(120)
         del editsnipe_before[before.channel.id]
         del editsnipe_after[before.channel.id]
