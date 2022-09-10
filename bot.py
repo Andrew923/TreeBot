@@ -13,23 +13,23 @@ from gcsa.google_calendar import GoogleCalendar
 from google.oauth2.credentials import Credentials
 
 # comment out between uploading
-# import config
-# token = config.discord_token
-# github = Github(config.github_token)
-# calendar = GoogleCalendar("andrewyu41213@gmail.com")
+import config
+token = config.discord_token
+github = Github(config.github_token)
+calendar = GoogleCalendar("andrewyu41213@gmail.com")
 
 
-token = Credentials(
-    token=os.getenv('token'),
-    refresh_token=os.getenv('refresh_token'),
-    client_id=os.getenv('client_id'),
-    client_secret=os.getenv('client_secret'),
-    scopes=['https://www.googleapis.com/auth/calendar'],
-    token_uri='https://oauth2.googleapis.com/token'
-)
-calendar = GoogleCalendar(credentials=token)
-token = os.getenv('config.token')
-github = Github(os.getenv('github_token'))
+# token = Credentials(
+#     token=os.getenv('token'),
+#     refresh_token=os.getenv('refresh_token'),
+#     client_id=os.getenv('client_id'),
+#     client_secret=os.getenv('client_secret'),
+#     scopes=['https://www.googleapis.com/auth/calendar'],
+#     token_uri='https://oauth2.googleapis.com/token'
+# )
+# calendar = GoogleCalendar(credentials=token)
+# token = os.getenv('config.token')
+# github = Github(os.getenv('github_token'))
 
 
 repository = github.get_user().get_repo('TreeBot')
@@ -52,8 +52,9 @@ def update(filename, dictionary, message='updated from python'):
     contents = repository.get_contents(filename)
     repository.update_file(contents.path, message, str(dictionary), contents.sha)
 
-def parseDate(string):
-    return dateparser.parse(string).astimezone(EDT)
+def parseDate(string, eastern=True):
+    if(eastern): return dateparser.parse(string).astimezone(EDT)
+    else: return dateparser.parse(string)
 
 def removeCommand(string):
     index = None
@@ -270,7 +271,7 @@ async def on_message(message):
         if(s == None):
             day = datetime.datetime.now().astimezone(EDT).date()
         else:
-            day = parseDate(s).date()
+            day = parseDate(s, False).date()
         eventcount = 0
         for event in calendar[day:day]: eventcount += 1
         s = '' if(eventcount == 1) else 's'
