@@ -285,13 +285,18 @@ async def on_message(message):
                     value = f"Location: {event.location}\nFrom: {event.start.strftime('%#I:%M %p')}\nTo: {event.end.strftime('%#I:%M %p')}" ,inline=False)
         await message.channel.send(embed=embed)
 
-    elif message.content.startswith('!python') and message.author.id == 177962211841540097:
+    elif message.content.startswith('py eval') and message.author.id == 177962211841540097:
         try:
-            await message.channel.send(eval(removeCommand(message.content)))
+            await message.channel.send(eval((message.content).replace('py eval', '').strip()))
         except:
             await message.channel.send("Something went wrong")
 
-
+    elif message.content.startswith('py exec') and message.author.id == 177962211841540097:
+        try:
+            exec((message.content).replace('py exec', '').strip())  
+            await message.channel.send("Comand Executed")
+        except:
+            await message.channel.send("Something went wrong")
 
 #snipe (for deleted messages)
 @client.event
