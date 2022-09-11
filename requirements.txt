@@ -4,3 +4,4 @@ datetime
 PyGithub
 dateparser
 gcsa
+canvasapi
