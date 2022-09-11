@@ -11,12 +11,14 @@ EDT = datetime.timezone(datetime.timedelta(hours=-4))
 from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
 from google.oauth2.credentials import Credentials
+from canvasapi import Canvas
 
 # comment out between uploading
 # import config
 # token = config.discord_token
 # github = Github(config.github_token)
 # calendar = GoogleCalendar("andrewyu41213@gmail.com")
+# canvas = Canvas('https://canvas.cmu.edu/', config.API_KEY)
 
 
 token = Credentials(
@@ -30,6 +32,7 @@ token = Credentials(
 calendar = GoogleCalendar(credentials=token)
 token = os.getenv('config.token')
 github = Github(os.getenv('github_token'))
+canvas = Canvas('https://canvas.cmu.edu/', os.getenv('canvasapikey'))
 
 
 repository = github.get_user().get_repo('TreeBot')
@@ -42,6 +45,8 @@ editsnipe_before = {}
 editsnipe_after = {}
 editsnipe_author = {}
 empty_char = '\u200b'
+user = canvas.get_current_user()
+courses = [canvas.get_course(31318), canvas.get_course(31146), canvas.get_course(30417)]
 
 #new read and udpate functions for updating github repo
 def read(filename):
@@ -62,6 +67,16 @@ def removeCommand(string):
         if(c.isspace()):
             index = string.index(c)
     return string[index + 1:] if index != None else None
+
+def canvasEmbed(iterable, title, count = False, emptyName=True):
+    n = 0
+    embed = discord.Embed(color=0x03c6fc,title=str(title))
+    for thing in iterable:
+        n += 1
+        if(count): thing = f"{n}. {thing}"
+        embed.add_field(name=empty_char,value=thing,inline=False) if emptyName else embed.add_field(name=thing,value=empty_char,inline=False)
+    embed.set_footer(text="Type 'Cancel' to stop")
+    return embed
 
 @client.event
 async def on_ready():
@@ -240,10 +255,10 @@ async def on_message(message):
         for event in calendar[day:day]:
             count += 1
             if(event.location == None):
-                embed.add_field(name=f"{count} " + event.summary,
+                embed.add_field(name=f"{count}. " + event.summary,
                     value = f"From: {event.start.strftime('%#I:%M %p')}\nTo: {event.end.strftime('%#I:%M %p')}" ,inline=False)
             else:
-                embed.add_field(name=f"{count} " + event.summary,
+                embed.add_field(name=f"{count}. " + event.summary,
                     value = f"Location: {event.location}\nFrom: {event.start.strftime('%#I:%M %p')}\nTo: {event.end.strftime('%#I:%M %p')}" ,inline=False)   
         embed.set_footer(text="Type 'Cancel' to stop")
         await message.channel.send(embed=embed)
@@ -284,6 +299,80 @@ async def on_message(message):
                 embed.add_field(name=event.summary,
                     value = f"Location: {event.location}\nFrom: {event.start.strftime('%#I:%M %p')}\nTo: {event.end.strftime('%#I:%M %p')}" ,inline=False)
         await message.channel.send(embed=embed)
+    
+    elif message.content.startswith('!canvas'):
+        s = removeCommand(message.content)
+        channel = message.channel
+        embed = discord.Embed(color=0x03c6fc,title='Courses')
+        count = 0
+        for course in courses:
+            count += 1
+            embed.add_field(name=empty_char, value=f"{count}. {course.course_code} {course.name}")
+        embed.set_footer(text="Type 'Cancel' to stop")
+        await message.channel.send(embed=embed)
+        def check(m):
+            if(m.content.lower() == 'cancel'):
+                return True
+            return m.content.isdigit() and m.channel == channel and (int(m.content) <= count)
+        msg = await client.wait_for('message', check=check)
+        if(msg.content.lower() == 'cancel'):
+            await message.channel.send("Cancelled")
+        else:
+            msg = int(msg.content)
+            count = 0
+            for c in courses:
+                count += 1
+                if(count == msg):
+                    course = c
+            embed = canvasEmbed(["'Assignments' or 'Modules'"], course.name, False, False)
+            await message.channel.send(embed=embed)
+            def check(m):
+                if(m.content.lower() == 'cancel'):
+                    return True
+                return m.content.isalpha() and m.channel == channel
+            msg = await client.wait_for('message', check=check)
+            msg = msg.content
+            if(msg.lower() == 'a' or 'assignment' in msg.lower()):
+                embed = canvasEmbed(course.get_assignments(),course.name, True)
+                await message.channel.send(embed=embed)
+                def check(m):
+                    if(m.content.lower() == 'cancel'):
+                        return True
+                    return m.content.isdigit() and m.channel == channel and (int(m.content) <= count)
+                msg = await client.wait_for('message', check=check)
+                if(msg.content.lower() == 'cancel'):
+                    await message.channel.send("Cancelled")
+                else:
+                    msg = int(msg.content)
+                    count = 0
+                    for a in course.get_assignments():
+                        count += 1
+                        if(count == msg):
+                            assignment = a
+                    s = assignment.description
+                    output = ''
+                    for line in (s.replace('<p>', '').replace('</p>','')).splitlines():
+                        if("Due" in line):
+                            print(line[line.index('/') - 2:line.index('/') + 3].strip())
+                        else:
+                            while '(' in line:
+                                line = line[:line.index('(')] + line[line.index(')') + 1:]
+                            output += line + '\n'
+                    for c in output:
+                        if not c.isdigit():
+                            if c != '.' and c != ',' and c != ':' and c != '\n':
+                                output = output.replace(c,'')
+                    embed = discord.Embed(color=0x03c6fc,title=assignment.name, description=output)
+                    await message.channel.send(embed=embed)
+            elif(msg.lower() == 'm' or 'module' in msg.lower()):
+                embed = canvasEmbed(course.get_modules(), course.name)
+                embed.add_field(name=empty_char,value=f"[Canvas Link](https://canvas.cmu.edu/courses/{course.id}/modules)")
+                embed.remove_footer()
+                await message.channel.send(embed=embed)
+            else:
+                await message.channel.send("I think something went wrong")
+
+
 
     elif message.content.startswith('py eval') and message.author.id == 177962211841540097:
         try:
