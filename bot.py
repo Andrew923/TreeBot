@@ -14,25 +14,25 @@ from google.oauth2.credentials import Credentials
 from canvasapi import Canvas
 
 # comment out between uploading
-import config
-token = config.discord_token
-github = Github(config.github_token)
-calendar = GoogleCalendar("andrewyu41213@gmail.com")
-canvas = Canvas('https://canvas.cmu.edu/', config.API_KEY)
+# import config
+# token = config.discord_token
+# github = Github(config.github_token)
+# calendar = GoogleCalendar("andrewyu41213@gmail.com")
+# canvas = Canvas('https://canvas.cmu.edu/', config.API_KEY)
 
 
-# token = Credentials(
-#     token=os.getenv('token'),
-#     refresh_token=os.getenv('refresh_token'),
-#     client_id=os.getenv('client_id'),
-#     client_secret=os.getenv('client_secret'),
-#     scopes=['https://www.googleapis.com/auth/calendar'],
-#     token_uri='https://oauth2.googleapis.com/token'
-# )
-# calendar = GoogleCalendar(credentials=token)
-# token = os.getenv('config.token')
-# github = Github(os.getenv('github_token'))
-# canvas = Canvas('https://canvas.cmu.edu/', os.getenv('canvasapikey'))
+token = Credentials(
+    token=os.getenv('token'),
+    refresh_token=os.getenv('refresh_token'),
+    client_id=os.getenv('client_id'),
+    client_secret=os.getenv('client_secret'),
+    scopes=['https://www.googleapis.com/auth/calendar'],
+    token_uri='https://oauth2.googleapis.com/token'
+)
+calendar = GoogleCalendar(credentials=token)
+token = os.getenv('config.token')
+github = Github(os.getenv('github_token'))
+canvas = Canvas('https://canvas.cmu.edu/', os.getenv('canvasapikey'))
 
 
 repository = github.get_user().get_repo('TreeBot')
