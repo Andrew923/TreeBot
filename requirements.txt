@@ -5,3 +5,4 @@ PyGithub
 dateparser
 gcsa
 canvasapi
+pyowm

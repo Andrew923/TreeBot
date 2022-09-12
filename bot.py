@@ -12,6 +12,7 @@ from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
 from google.oauth2.credentials import Credentials
 from canvasapi import Canvas
+from pyowm.owm import OWM
 
 # comment out between uploading
 # import config
@@ -19,7 +20,7 @@ from canvasapi import Canvas
 # github = Github(config.github_token)
 # calendar = GoogleCalendar("andrewyu41213@gmail.com")
 # canvas = Canvas('https://canvas.cmu.edu/', config.API_KEY)
-
+# owm = OWM(config.weather)
 
 token = Credentials(
     token=os.getenv('token'),
@@ -33,6 +34,7 @@ calendar = GoogleCalendar(credentials=token)
 token = os.getenv('config.token')
 github = Github(os.getenv('github_token'))
 canvas = Canvas('https://canvas.cmu.edu/', os.getenv('canvasapikey'))
+owm = OWM(os.getenv('weatherkey'))
 
 
 repository = github.get_user().get_repo('TreeBot')
@@ -47,6 +49,7 @@ editsnipe_author = {}
 empty_char = '\u200b'
 user = canvas.get_current_user()
 courses = [canvas.get_course(31318), canvas.get_course(31146), canvas.get_course(30417)]
+mgr = owm.weather_manager()
 
 #new read and udpate functions for updating github repo
 def read(filename):
@@ -151,7 +154,7 @@ async def on_message(message):
         message = random.choice(message.channel.history(limit=300).flatten())
         await message.channel.send(message.content + '\n' + message.jump_url)
 
-    elif message.content.startswith('!time' or 'what time is it' or "what's the time"):
+    elif message.content.startswith('!time') or message.content.startswith('what time is it') or message.content.startswith("what's the time"):
         if (random.randint(1,3) != 1):
             await message.channel.send("The time is " + datetime.datetime.now().astimezone(EDT).strftime("%#I:%M %p"))
         else:
@@ -222,7 +225,7 @@ async def on_message(message):
             update('pins.json', pins)
             await message.channel.send('Pins will be posted to this channel')
     
-    elif message.content.startswith('!remind' or '!reminder'):
+    elif message.content.startswith('!remind'):
         s = removeCommand(message.content)
         time, reminder = parseDate(s[:s.find(',')]), s[s.find(',') + 1:]
         await asyncio.sleep(int((time - datetime.datetime.now()).total_seconds()))
@@ -247,9 +250,10 @@ async def on_message(message):
             embed.add_field(name=title,value=f"Date: {time.strftime('%#m/%#d')}")
             await message.channel.send(embed=embed)
     
-    elif message.content.startswith('!delete' or '!deleteevent'):
+    elif message.content.startswith('!delete'):
         s = removeCommand(message.content)
         channel = message.channel
+        author = message.author
         if(s == None):
             day = datetime.datetime.now().astimezone(EDT).date()
         else:
@@ -270,7 +274,7 @@ async def on_message(message):
         def check(m):
             if(m.content.lower() == 'cancel'):
                 return True
-            return m.content.isdigit() and m.channel == channel and (int(m.content) <= count)
+            return m.content.isdigit() and m.channel == channel and (int(m.content) <= count) and m.author == author
         msg = await client.wait_for('message', check=check)
         if(msg.content.lower() == 'cancel'):
             await message.channel.send("Cancelled")
@@ -285,6 +289,73 @@ async def on_message(message):
             embed = discord.Embed(color=0x03c6fc, title='Event Deleted')
             embed.add_field(name=title,value=f"Date: {time.strftime('%#m/%#d')}")
             await message.channel.send(embed=embed)
+
+    elif message.content.startswith('!update'):
+        s = removeCommand(message.content)
+        channel = message.channel
+        author = message.author
+        if(s == None):
+            day = datetime.datetime.now().astimezone(EDT).date()
+        else:
+            day = parseDate(s).date()
+        eventcount = 0
+        embed = discord.Embed(color=0x03c6fc, title='Update which event?', description='Type the number corresponding to the event')
+        count = 0
+        for event in calendar[day:day]:
+            count += 1
+            if(event.location == None):
+                embed.add_field(name=f"{count}. " + event.summary,
+                    value = f"From: {event.start.strftime('%#I:%M %p')}\nTo: {event.end.strftime('%#I:%M %p')}" ,inline=False)
+            else:
+                embed.add_field(name=f"{count}. " + event.summary,
+                    value = f"Location: {event.location}\nFrom: {event.start.strftime('%#I:%M %p')}\nTo: {event.end.strftime('%#I:%M %p')}" ,inline=False)   
+        embed.set_footer(text="Type 'Cancel' to stop")
+        await message.channel.send(embed=embed)
+        def check(m):
+            if(m.content.lower() == 'cancel'):
+                return True
+            return m.content.isdigit() and m.channel == channel and (int(m.content) <= count) and m.author == author
+        msg = await client.wait_for('message', check=check)
+        if(msg.content.lower() == 'cancel'):
+            await message.channel.send("Cancelled")
+        else:
+            msg = int(msg.content)
+            count = 0
+            for ev in calendar[day:day]:
+                count += 1
+                if(count == msg):
+                    event = ev     
+            embed = discord.Embed(color=0x03c6fc, title='Update Event')
+            embed.add_field(name=event.summary,value=f"Start: {event.start.strftime('%#m/%#d %#I:%M %p')}\nEnd: {event.end.strftime('%#m/%#d %#I:%M %p')}")
+            embed.set_footer(text="Type 'Cancel' to stop")
+            await message.channel.send(embed=embed)
+            def check(m):
+                if(m.content.lower() == 'cancel'):
+                    return True
+                return m.channel == channel and m.author == author
+            msg = await client.wait_for('message', check=check)
+            if(msg.content.lower() == 'cancel'):
+                await message.channel.send("Cancelled")
+            else:
+                if 'start' in msg.content:
+                    s = msg.content.replace('start', '').strip()
+                    event.start = parseDate(s)
+                elif 'end' in msg.content:
+                    s = msg.content.replace('end', '').strip()
+                    event.end = parseDate(s)
+                elif 'summary' in msg.content:
+                    s = msg.content.replace('summary', '').strip()
+                    event.summary = s
+                elif 'location' in msg.content:
+                    s = msg.content.replace('location', '').strip()
+                    event.location = s
+                elif 'description' in msg.content:
+                    s = msg.content.replace('description', '').strip()
+                    event.description = s
+                calendar.update_event(event)
+                embed = discord.Embed(color=0x03c6fc, title='Event Updated')
+                embed.add_field(name=event.summary,value=f"Start: {event.start.strftime('%#m/%#d %#I:%M %p')}\nEnd: {event.end.strftime('%#m/%#d %#I:%M %p')}")
+                await message.channel.send(embed=embed)
 
     elif message.content.startswith('!schedule'):
         s = removeCommand(message.content)
@@ -308,6 +379,7 @@ async def on_message(message):
     elif message.content.startswith('!canvas'):
         s = removeCommand(message.content)
         channel = message.channel
+        author = message.author
         embed = discord.Embed(color=0x03c6fc,title='Courses')
         count = 0
         for course in courses:
@@ -318,7 +390,7 @@ async def on_message(message):
         def check(m):
             if(m.content.lower() == 'cancel'):
                 return True
-            return m.content.isdigit() and m.channel == channel and (int(m.content) <= count)
+            return m.content.isdigit() and m.channel == channel and (int(m.content) <= count) and m.channel == author
         msg = await client.wait_for('message', check=check)
         if(msg.content.lower() == 'cancel'):
             await message.channel.send("Cancelled")
@@ -334,7 +406,7 @@ async def on_message(message):
             def check(m):
                 if(m.content.lower() == 'cancel'):
                     return True
-                return m.content.isalpha() and m.channel == channel
+                return m.content.isalpha() and m.channel == channel and m.author == author
             msg = await client.wait_for('message', check=check)
             msg = msg.content
             if(msg.lower() == 'a' or 'assignment' in msg.lower()):
@@ -343,7 +415,7 @@ async def on_message(message):
                 def check(m):
                     if(m.content.lower() == 'cancel'):
                         return True
-                    return m.content.isdigit() and m.channel == channel and (int(m.content) <= count)
+                    return m.content.isdigit() and m.channel == channel and (int(m.content) <= count) and m.author == author
                 msg = await client.wait_for('message', check=check)
                 if(msg.content.lower() == 'cancel'):
                     await message.channel.send("Cancelled")
@@ -377,8 +449,6 @@ async def on_message(message):
             else:
                 await message.channel.send("I think something went wrong")
 
-
-
     elif message.content.startswith('eval') and message.author.id == 177962211841540097:
         try:
             await message.channel.send(eval(removeCommand(message.content).strip()))
@@ -391,6 +461,25 @@ async def on_message(message):
             await message.channel.send("Comand Executed")
         except:
             await message.channel.send("Something went wrong")
+
+    elif message.content.startswith('!w'):
+        if 'forecast' not in message.content:
+            place = 'Pittsburgh'
+            observation = mgr.weather_at_place(place)
+            weather = observation.weather
+            embed = discord.Embed(color=0x03c6fc, title=f'Weather in {place}', description=weather.detailed_status)
+            embed.set_thumbnail(url=weather.weather_icon_url())
+            temp = weather.temperature('fahrenheit')
+            s = f"Low: {temp['temp_min']} °F High: {temp['temp_max']} °F Feels like: {temp['feels_like']} °F"
+            embed.add_field(name=f"Temperature: {temp['temp']} °F",value=s)
+            if weather.rain != {}:
+                if len(weather.rain) == 1:
+                    embed.add_field(name="Rain:",value=f"Next hour: {weather.rain['1h']} mm")
+                else:
+                    embed.add_field(name="Rain:",value=f"Next hour: {weather.rain['1h']} mm\nNext 3 hours: {weather.rain['3h']} mm")
+            await message.channel.send(embed=embed)
+        else:
+            await message.channel.send("fuck you")
 
 #snipe (for deleted messages)
 @client.event
