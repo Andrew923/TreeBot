@@ -479,7 +479,7 @@ async def on_message(message):
 
     elif message.content.startswith('tinyurl'):
         s = message.content.replace('tinyurl','').strip()
-        s = s.split().join('-')
+        s = ('-').join(s.split())
         await message.channel.send(f'https://www.tinyurl.com/{s}')
 
 #snipe (for deleted messages)
