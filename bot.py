@@ -51,7 +51,7 @@ user = canvas.get_current_user()
 courses = [canvas.get_course(31318), canvas.get_course(31146), canvas.get_course(30417)]
 mgr = owm.weather_manager()
 
-#new read and udpate functions for updating github repo
+#read and udpate functions for updating github repo
 def read(filename):
     file = repository.get_contents(filename)
     return eval(file.decoded_content.decode())
@@ -59,10 +59,6 @@ def read(filename):
 def update(filename, dictionary, message='updated from python'):
     contents = repository.get_contents(filename)
     repository.update_file(contents.path, message, str(dictionary), contents.sha)
-
-# def parseDate(string, eastern=True):
-#     if(eastern): return dateparser.parse(string).astimezone(EDT)
-#     else: return dateparser.parse(string)
 
 #should fix time zone issues
 def parseDate(string):
@@ -480,6 +476,11 @@ async def on_message(message):
             await message.channel.send(embed=embed)
         else:
             await message.channel.send("fuck you")
+
+    elif message.content.startswith('tinyurl'):
+        s = message.content.replace('tinyurl','').strip()
+        s = s.split().join('-')
+        await message.channel.send(f'https://www.tinyurl.com/{s}')
 
 #snipe (for deleted messages)
 @client.event
