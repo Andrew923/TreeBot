@@ -521,9 +521,9 @@ async def on_message(message):
                             embed.add_field(name="Rain:",value=f"Next hour: {weather.rain['1h']} mm\nNext 3 hours: {weather.rain['3h']} mm")
                     await message.channel.send(embed=embed)
 
-    elif message.content.lower().startswith('tinyurl'):
-        s = message.content.lower().replace('tinyurl','').strip()
-        s = s.split().join('-')
+    elif message.content.startswith('tinyurl'):
+        s = message.content.replace('tinyurl','').strip()
+        s = ('-').join(s.split())
         await message.channel.send(f'https://www.tinyurl.com/{s}')
 
 #snipe (for deleted messages)
