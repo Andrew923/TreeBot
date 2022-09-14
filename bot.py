@@ -101,7 +101,7 @@ async def on_message(message):
     if message.author == client.user:
         return
     #display help message with all commands
-    elif message.content.startswith('!help'):
+    elif message.content.lower().startswith('!help'):
         embed=discord.Embed(color=0x03c6fc)
         embed.set_author(name="Tree Commands:", icon_url="http://clipart-library.com/img1/1269981.png",
             url="https://github.com/Andrew923/TreeBot")
@@ -118,16 +118,17 @@ async def on_message(message):
         embed.add_field(name='!editsnipe', value='see recently edited messages')
         embed.add_field(name='!pin', value="specify 'from' or 'to' to get pinned messages from one channel sent to another")
         embed.add_field(name='!remind', value='be reminded of something')
+        embed.add_field(name='!weather', value="See weather at a location that is setup on first time a user calls or when '!weather setup' is called")
         embed.add_field(name=empty_char, value="See the ReadMe [here](https://github.com/Andrew923/TreeBot#readme) to view usage syntax", inline=False)
         await message.channel.send(embed=embed)
 
     elif message.content.lower() == 'hello':
         await message.channel.send('Hello!')
 
-    elif message.content.startswith('!say'):
-        await message.channel.send(removeCommand(message.content))
+    elif message.content.lower().startswith('!say'):
+        await message.channel.send(removeCommand(message.content.lower()))
 
-    elif message.content.startswith('!pokemon'):
+    elif message.content.lower().startswith('!pokemon'):
         pokemontime = read('pokemontime.json')
         try:
             if pokemontime[str(message.author.id)] < datetime.datetime.now():
@@ -146,24 +147,24 @@ async def on_message(message):
             pokemontime[str(message.author.id)] = datetime.datetime.now() + datetime.timedelta(minutes=60)
             update('pokemontime.json', pokemontime)
 
-    elif message.content.startswith('!random message' or '!randommessage'):
+    elif message.content.lower().startswith('!random message' or '!randommessage'):
         message = random.choice(message.channel.history(limit=300).flatten())
-        await message.channel.send(message.content + '\n' + message.jump_url)
+        await message.channel.send(message.content.lower() + '\n' + message.jump_url)
 
-    elif message.content.startswith('!time') or message.content.startswith('what time is it') or message.content.startswith("what's the time"):
+    elif message.content.lower().startswith('!time') or message.content.lower().startswith('what time is it') or message.content.lower().startswith("what's the time"):
         if (random.randint(1,3) != 1):
             await message.channel.send("The time is " + datetime.datetime.now().astimezone(EDT).strftime("%#I:%M %p"))
         else:
             await message.channel.send("time for you to get a watch hahaha")
 
-    elif message.content.startswith('!store'):
-        stored_message = removeCommand(message.content)
+    elif message.content.lower().startswith('!store'):
+        stored_message = removeCommand(message.content.lower())
         storage = read('storage.json')
         storage[str(message.author.id)] = stored_message
         update('storage.json', storage)
         await message.channel.send("Stored: " + stored_message)
     
-    elif message.content.startswith('!retrieve'):
+    elif message.content.lower().startswith('!retrieve'):
         storage = read('storage.json')
         try:
             await message.channel.send(storage[str(message.author.id)])
@@ -173,14 +174,14 @@ async def on_message(message):
             await message.channel.send("Nothing is stored")
 
     #pokemon reminder
-    elif message.content.startswith('!remindpokemon'):
+    elif message.content.lower().startswith('!remindpokemon'):
         channel = message.channel
-        if message.content[-3:] == ' on':
+        if message.content.lower()[-3:] == ' on':
             remind = read('remind.json')
             remind[str(message.author.id)] = "yes"
             update('remind.json', remind)
             await channel.send("You will now receive notifications when pokemons are ready")
-        elif message.content[-3:] == 'off':
+        elif message.content.lower()[-3:] == 'off':
             remind = read('remind.json')
             remind[str(message.author.id)] = "nah"
             update('remind.json', remind)
@@ -189,7 +190,7 @@ async def on_message(message):
             await message.channel.send("Please specify whether to turn this setting 'on' or 'off'")
 
     #snipe
-    elif message.content.startswith('!snipe'):
+    elif message.content.lower().startswith('!snipe'):
         try:
             em = discord.Embed(color=0x03c6fc, title = f"Last deleted message in #{message.channel.name}", description = snipe_content[message.channel.id])
             em.set_footer(text = f"This message was sent by {snipe_author[message.channel.id]}")
@@ -198,7 +199,7 @@ async def on_message(message):
             await message.channel.send("Nobody deleted any shit")
     
     #editsnipe
-    elif message.content.startswith('!editsnipe'):
+    elif message.content.lower().startswith('!editsnipe'):
         try:
             em = discord.Embed(color=0x03c6fc, title = f"Last edited message in #{message.channel.name}")
             em.add_field(name='Before:', value = editsnipe_before[message.channel.id])
@@ -209,29 +210,29 @@ async def on_message(message):
             await message.channel.send("No edits")
     
     #pins
-    elif message.content.startswith('!pin'):
-        if 'from' in message.content:
+    elif message.content.lower().startswith('!pin'):
+        if 'from' in message.content.lower():
             pins = read('pins.json')
             pins['from'].append(message.channel.id)
             update('pins.json', pins)
             await message.channel.send('Pins will be read from this channel')
-        elif 'to' in message.content:
+        elif 'to' in message.content.lower():
             pins = read('pins.json')
             pins['to'].append(message.channel.id)
             update('pins.json', pins)
             await message.channel.send('Pins will be posted to this channel')
     
-    elif message.content.startswith('!remind'):
-        s = removeCommand(message.content)
+    elif message.content.lower().startswith('!remind'):
+        s = removeCommand(message.content.lower())
         time, reminder = parseDate(s[:s.find(',')]), s[s.find(',') + 1:]
         await asyncio.sleep(int((time - datetime.datetime.now()).total_seconds()))
         await message.channel.send(f"{message.author.mention} {reminder}")
 
-    elif message.content.startswith('!event'):
-        if(',' not in message.content):
+    elif message.content.lower().startswith('!event'):
+        if(',' not in message.content.lower()):
             await message.channel.send("Please use a comma to separate the event time and event title")
-        elif(message.content.count(',') > 1):
-            s = removeCommand(message.content)
+        elif(message.content.lower().count(',') > 1):
+            s = removeCommand(message.content.lower())
             start, s = parseDate(s[:s.find(',')]), s[s.find(',') + 1:]
             end, title = parseDate(s[:s.find(',')]), s[s.find(',') + 1:]
             calendar.add_event(Event(title, start = start, end = end))
@@ -239,15 +240,15 @@ async def on_message(message):
             embed.add_field(name=title,value=f"From: {start.strftime('%#m/%#d %#I:%M %p')}\nTo: {end.strftime('%#m/%#d %#I:%M %p')}")
             await message.channel.send(embed=embed)
         else:
-            s = removeCommand(message.content)
+            s = removeCommand(message.content.lower())
             time, title = parseDate(s[:s.find(',')]).date(), s[s.find(',') + 1:]
             calendar.add_event(Event(title, start = time, end = time+datetime.timedelta(days=1)))
             embed = discord.Embed(color=0x03c6fc, title='New Event')
             embed.add_field(name=title,value=f"Date: {time.strftime('%#m/%#d')}")
             await message.channel.send(embed=embed)
     
-    elif message.content.startswith('!delete'):
-        s = removeCommand(message.content)
+    elif message.content.lower().startswith('!delete'):
+        s = removeCommand(message.content.lower())
         channel = message.channel
         author = message.author
         if(s == None):
@@ -286,8 +287,8 @@ async def on_message(message):
             embed.add_field(name=title,value=f"Date: {time.strftime('%#m/%#d')}")
             await message.channel.send(embed=embed)
 
-    elif message.content.startswith('!update'):
-        s = removeCommand(message.content)
+    elif message.content.lower().startswith('!update'):
+        s = removeCommand(message.content.lower())
         channel = message.channel
         author = message.author
         if(s == None):
@@ -353,8 +354,8 @@ async def on_message(message):
                 embed.add_field(name=event.summary,value=f"Start: {event.start.strftime('%#m/%#d %#I:%M %p')}\nEnd: {event.end.strftime('%#m/%#d %#I:%M %p')}")
                 await message.channel.send(embed=embed)
 
-    elif message.content.startswith('!schedule'):
-        s = removeCommand(message.content)
+    elif message.content.lower().startswith('!schedule'):
+        s = removeCommand(message.content.lower())
         if(s == None):
             day = datetime.datetime.now().astimezone(EDT).date()
         else:
@@ -372,8 +373,8 @@ async def on_message(message):
                     value = f"Location: {event.location}\nFrom: {event.start.strftime('%#I:%M %p')}\nTo: {event.end.strftime('%#I:%M %p')}" ,inline=False)
         await message.channel.send(embed=embed)
     
-    elif message.content.startswith('!canvas'):
-        s = removeCommand(message.content)
+    elif message.content.lower().startswith('!canvas'):
+        s = removeCommand(message.content.lower())
         channel = message.channel
         author = message.author
         embed = discord.Embed(color=0x03c6fc,title='Courses')
@@ -386,7 +387,7 @@ async def on_message(message):
         def check(m):
             if(m.content.lower() == 'cancel'):
                 return True
-            return m.content.isdigit() and m.channel == channel and (int(m.content) <= count) and m.channel == author
+            return m.content.isdigit() and m.channel == channel and (int(m.content) <= count) and m.author == author
         msg = await client.wait_for('message', check=check)
         if(msg.content.lower() == 'cancel'):
             await message.channel.send("Cancelled")
@@ -426,7 +427,7 @@ async def on_message(message):
                     output = ''
                     for line in (s.replace('<p>', '').replace('</p>','')).splitlines():
                         if("Due" in line):
-                            print(line[line.index('/') - 2:line.index('/') + 3].strip())
+                            date = line[line.index('/') - 2:line.index('/') + 3].strip() + '\n'
                         else:
                             while '(' in line:
                                 line = line[:line.index('(')] + line[line.index(')') + 1:]
@@ -435,6 +436,7 @@ async def on_message(message):
                         if not c.isdigit():
                             if c != '.' and c != ',' and c != ':' and c != '\n':
                                 output = output.replace(c,'')
+                    output = date + output
                     embed = discord.Embed(color=0x03c6fc,title=assignment.name, description=output)
                     await message.channel.send(embed=embed)
             elif(msg.lower() == 'm' or 'module' in msg.lower()):
@@ -445,22 +447,49 @@ async def on_message(message):
             else:
                 await message.channel.send("I think something went wrong")
 
-    elif message.content.startswith('eval') and message.author.id == 177962211841540097:
+    elif message.content.lower().startswith('eval') and message.author.id == 177962211841540097:
         try:
-            await message.channel.send(eval(removeCommand(message.content).strip()))
+            await message.channel.send(eval(removeCommand(message.content.lower()).strip()))
         except:
             await message.channel.send("Something went wrong")
 
-    elif message.content.startswith('exec') and message.author.id == 177962211841540097:
+    elif message.content.lower().startswith('exec') and message.author.id == 177962211841540097:
         try:
-            exec(removeCommand(message.content).strip())  
+            exec(removeCommand(message.content.lower()).strip())  
             await message.channel.send("Comand Executed")
         except:
             await message.channel.send("Something went wrong")
 
-    elif message.content.startswith('!w'):
-        if 'forecast' not in message.content:
-            place = 'Pittsburgh'
+    elif message.content.lower().startswith('!w'):
+        wDict = read('weather.json')
+        if 'in' in message.content.lower():
+            place = removeCommand(message.content).replace('in', '').strip()
+        elif message.author.id not in wDict or 'setup' in message.content:
+            await message.channel.send("Setting up location. Please enter city name or coordinates (lat, lon).")
+            def check(m):
+                if(m.content.lower() == 'cancel'):
+                    return True
+                return m.channel == message.channel and m.author == message.author
+            msg = await client.wait_for('message', check=check)
+            if(msg.content.lower() == 'cancel'):
+                await message.channel.send("Cancelled")
+            elif(msg.content.isalpha()):
+                place = msg.content
+                wDict[message.author.id] = place
+                update('weather.json', wDict)
+            else:
+                msg = msg.content
+                try:
+                    lat, lon = float(msg[:msg.index(',')]), float(msg[msg.index(',')+1:])
+                except:
+                    await message.channel.send("Something went wrong")
+                geomgr = owm.geocoding_manager()
+                place = geomgr.reverse_geocode(lat, lon)[0].name
+                wDict[message.author.id] = place
+                update('weather.json', wDict)
+        else:
+            place = wDict[message.author.id]
+        if 'forecast' not in message.content.lower():
             observation = mgr.weather_at_place(place)
             weather = observation.weather
             embed = discord.Embed(color=0x03c6fc, title=f'Weather in {place}', description=weather.detailed_status)
@@ -475,17 +504,32 @@ async def on_message(message):
                     embed.add_field(name="Rain:",value=f"Next hour: {weather.rain['1h']} mm\nNext 3 hours: {weather.rain['3h']} mm")
             await message.channel.send(embed=embed)
         else:
-            await message.channel.send("fuck you")
+            forecast = mgr.forecast_at_place(place, '3h').forecast
+            forecast.actualize()
+            end = datetime.datetime.now() + datetime.timedelta(hours=12)
+            for weather in forecast.weathers:
+                if datetime.datetime.fromisoformat(weather.reference_time('iso')).replace(tzinfo=None) < end:
+                    embed = discord.Embed(color=0x03c6fc, title=f'Weather in {place}', description=weather.detailed_status)
+                    embed.set_thumbnail(url=weather.weather_icon_url())
+                    temp = weather.temperature('fahrenheit')
+                    s = f"Low: {temp['temp_min']} °F High: {temp['temp_max']} °F Feels like: {temp['feels_like']} °F"
+                    embed.add_field(name=f"Temperature: {temp['temp']} °F",value=s)
+                    if weather.rain != {}:
+                        if len(weather.rain) == 1:
+                            embed.add_field(name="Rain:",value=f"Next hour: {weather.rain['1h']} mm")
+                        else:
+                            embed.add_field(name="Rain:",value=f"Next hour: {weather.rain['1h']} mm\nNext 3 hours: {weather.rain['3h']} mm")
+                    await message.channel.send(embed=embed)
 
-    elif message.content.startswith('tinyurl'):
-        s = message.content.replace('tinyurl','').strip()
+    elif message.content.lower().startswith('tinyurl'):
+        s = message.content.lower().replace('tinyurl','').strip()
         s = s.split().join('-')
         await message.channel.send(f'https://www.tinyurl.com/{s}')
 
 #snipe (for deleted messages)
 @client.event
 async def on_message_delete(message):
-    snipe_content[message.channel.id] = message.content
+    snipe_content[message.channel.id] = message.content.lower()
     snipe_author[message.channel.id] = message.author
     await asyncio.sleep(120)
     del snipe_author[message.channel.id]
