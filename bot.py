@@ -135,7 +135,7 @@ async def on_message(message):
                 pokemon = pokedex.get_pokemon_by_number(random.randint(1,807))[0]
                 await message.channel.send("Good job, " + message.author.mention + " you caught " + pokemon['name'] + "!")
                 await message.channel.send(pokemon['sprite'])
-                pokemontime[str(message.author.id)] = datetime.datetimenow() + datetime.timedelta(minutes=60)
+                pokemontime[str(message.author.id)] = datetime.datetime.now() + datetime.timedelta(minutes=60)
                 update('pokemontime.json', pokemontime)
             else:
                 time = datetime.datetime.strptime(str(pokemontime[str(message.author.id)] - datetime.datetime.now()), '%H:%M:%S.%f')
@@ -521,7 +521,7 @@ async def on_message(message):
                             embed.add_field(name="Rain:",value=f"Next hour: {weather.rain['1h']} mm\nNext 3 hours: {weather.rain['3h']} mm")
                     await message.channel.send(embed=embed)
 
-    elif message.content.startswith('tinyurl'):
+    elif message.content.lower().startswith('tinyurl') or message.content.lower().startswith('url'):
         s = message.content.replace('tinyurl','').strip()
         s = ('-').join(s.split())
         await message.channel.send(f'https://www.tinyurl.com/{s}')
