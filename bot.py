@@ -13,6 +13,7 @@ from gcsa.google_calendar import GoogleCalendar
 from google.oauth2.credentials import Credentials
 from canvasapi import Canvas
 from pyowm.owm import OWM
+from pydictionary import Dictionary
 
 # comment out between uploading
 # import config
@@ -62,8 +63,7 @@ def update(filename, dictionary, message='updated from python'):
 
 #should fix time zone issues
 def parseDate(string):
-    settings = {'TIMEZONE': 'US/Eastern', 'RETURN_AS_TIMEZONE_AWARE': True}
-    return dateparser.parse(string, settings=settings)
+    return dateparser.parse(string)
 
 def removeCommand(string):
     index = None
@@ -464,6 +464,7 @@ async def on_message(message):
         wDict = read('weather.json')
         if 'in' in message.content.lower():
             place = removeCommand(message.content).replace('in', '').strip()
+        #setup location
         elif message.author.id not in wDict or 'setup' in message.content:
             await message.channel.send("Setting up location. Please enter city name or coordinates (lat, lon).")
             def check(m):
@@ -489,6 +490,7 @@ async def on_message(message):
                 update('weather.json', wDict)
         else:
             place = wDict[message.author.id]
+        #defaults to daily forecast
         if 'forecast' not in message.content.lower():
             observation = mgr.weather_at_place(place)
             weather = observation.weather
@@ -503,6 +505,7 @@ async def on_message(message):
                 else:
                     embed.add_field(name="Rain:",value=f"Next hour: {weather.rain['1h']} mm\nNext 3 hours: {weather.rain['3h']} mm")
             await message.channel.send(embed=embed)
+        #not really finished (not sure how to make it look decent), gives weather forecast
         else:
             forecast = mgr.forecast_at_place(place, '3h').forecast
             forecast.actualize()
@@ -521,10 +524,29 @@ async def on_message(message):
                             embed.add_field(name="Rain:",value=f"Next hour: {weather.rain['1h']} mm\nNext 3 hours: {weather.rain['3h']} mm")
                     await message.channel.send(embed=embed)
 
+    #Generates tinyurl links
     elif message.content.lower().startswith('tinyurl') or message.content.lower().startswith('url'):
-        s = message.content.replace('tinyurl','').strip()
+        if 'tinyurl' in message:
+            s = message.content.replace('tinyurl','').strip()
+        else:
+            s = message.content.replace('url','').strip()
         s = ('-').join(s.split())
         await message.channel.send(f'https://www.tinyurl.com/{s}')
+
+    #defines words
+    elif message.content.lower().startswith('define') or \
+         (message.content.lower().startswith('what does') and message.content.lower().endswith('mean')):
+        if 'define' in message.content:
+            s = removeCommand(message.content)
+        else:
+            s = message.content.replace('what does', '').replace('mean', '').strip()
+        count = 0
+        embed = discord.Embed(color=0x03c6fc, title=f'Definition of {s}')
+        for definition in Dictionary(s, 5).meanings():
+            count += 1
+            embed.add_field(name = empty_char, value = f"{count}. {definition}", inline=False)
+        if count == 0: embed.add_field(name=empty_char, value=f"No meaning of {s} found")
+        await message.channel.send(embed=embed)
 
 #snipe (for deleted messages)
 @client.event
