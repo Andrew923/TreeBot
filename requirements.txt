@@ -6,3 +6,4 @@ dateparser
 gcsa
 canvasapi
 pyowm
+Py-Dictionary
