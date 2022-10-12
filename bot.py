@@ -16,26 +16,26 @@ from pyowm.owm import OWM
 from pydictionary import Dictionary
 
 # comment out between uploading
-# import config
-# token = config.discord_token
-# github = Github(config.github_token)
-# calendar = GoogleCalendar("andrewyu41213@gmail.com")
-# canvas = Canvas('https://canvas.cmu.edu/', config.API_KEY)
-# owm = OWM(config.weather)
+import config
+token = config.discord_token
+github = Github(config.github_token)
+calendar = GoogleCalendar("andrewyu41213@gmail.com")
+canvas = Canvas('https://canvas.cmu.edu/', config.API_KEY)
+owm = OWM(config.weather)
 
-token = Credentials(
-    token=os.getenv('token'),
-    refresh_token=os.getenv('refresh_token'),
-    client_id=os.getenv('client_id'),
-    client_secret=os.getenv('client_secret'),
-    scopes=['https://www.googleapis.com/auth/calendar'],
-    token_uri='https://oauth2.googleapis.com/token'
-)
-calendar = GoogleCalendar(credentials=token)
-token = os.getenv('config.token')
-github = Github(os.getenv('github_token'))
-canvas = Canvas('https://canvas.cmu.edu/', os.getenv('canvasapikey'))
-owm = OWM(os.getenv('weatherkey'))
+# token = Credentials(
+#     token=os.getenv('token'),
+#     refresh_token=os.getenv('refresh_token'),
+#     client_id=os.getenv('client_id'),
+#     client_secret=os.getenv('client_secret'),
+#     scopes=['https://www.googleapis.com/auth/calendar'],
+#     token_uri='https://oauth2.googleapis.com/token'
+# )
+# calendar = GoogleCalendar(credentials=token)
+# token = os.getenv('config.token')
+# github = Github(os.getenv('github_token'))
+# canvas = Canvas('https://canvas.cmu.edu/', os.getenv('canvasapikey'))
+# owm = OWM(os.getenv('weatherkey'))
 
 
 repository = github.get_user().get_repo('TreeBot')
@@ -65,12 +65,8 @@ def update(filename, dictionary, message='updated from python'):
 def parseDate(string):
     return dateparser.parse(string)
 
-def removeCommand(string):
-    index = None
-    for c in string:
-        if(c.isspace()):
-            index = string.index(c)
-    return string[index + 1:] if index != None else None
+def removeCommand(string, count=1):
+    return ' '.join(string.split()[count:])
 
 def canvasEmbed(iterable, title, count = False, emptyName=True):
     n = 0
@@ -463,7 +459,7 @@ async def on_message(message):
     elif message.content.lower().startswith('!w'):
         wDict = read('weather.json')
         if 'in' in message.content.lower():
-            place = removeCommand(message.content).replace('in', '').strip()
+            place = removeCommand(message.content.replace(' in ', ' ')).strip()
         #setup location
         elif message.author.id not in wDict or 'setup' in message.content:
             await message.channel.send("Setting up location. Please enter city name or coordinates (lat, lon).")
@@ -490,43 +486,35 @@ async def on_message(message):
                 update('weather.json', wDict)
         else:
             place = wDict[message.author.id]
+        coords = owm.geocoding_manager().geocode(place)[0]
+        one_call = mgr.one_call(coords.lat, coords.lon)
         #defaults to daily forecast
         if 'forecast' not in message.content.lower():
-            observation = mgr.weather_at_place(place)
-            weather = observation.weather
-            embed = discord.Embed(color=0x03c6fc, title=f'Weather in {place}', description=weather.detailed_status)
-            embed.set_thumbnail(url=weather.weather_icon_url())
-            temp = weather.temperature('fahrenheit')
-            s = f"Low: {temp['temp_min']} °F High: {temp['temp_max']} °F Feels like: {temp['feels_like']} °F"
-            embed.add_field(name=f"Temperature: {temp['temp']} °F",value=s)
-            if weather.rain != {}:
-                if len(weather.rain) == 1:
-                    embed.add_field(name="Rain:",value=f"Next hour: {weather.rain['1h']} mm")
-                else:
-                    embed.add_field(name="Rain:",value=f"Next hour: {weather.rain['1h']} mm\nNext 3 hours: {weather.rain['3h']} mm")
+            curr = one_call.current
+            today = one_call.forecast_daily[0]
+            embed = discord.Embed(color=0x03c6fc, title=f'Weather in {place}', description=curr.detailed_status)
+            embed.set_thumbnail(url=curr.weather_icon_url())
+            curr_temp = curr.temperature('fahrenheit')
+            s = f"Low: {today.temperature('fahrenheit')['min']} °F High: {today.temperature('fahrenheit')['max']} °F"
+            embed.add_field(name=f"Temperature: {curr_temp['temp']} °F (Feels like: {curr_temp['feels_like']} °F)",value=s, inline=False)
+            if today.rain != {}:
+                embed.add_field(name="It will rain today!", value=f"Amount: {today.rain['all']} mm")
             await message.channel.send(embed=embed)
-        #not really finished (not sure how to make it look decent), gives weather forecast
+        #not really finished (not sure how to make it look decent), gives weather forecast, defaults daily
         else:
-            forecast = mgr.forecast_at_place(place, '3h').forecast
-            forecast.actualize()
-            end = datetime.datetime.now() + datetime.timedelta(hours=12)
-            for weather in forecast.weathers:
-                if datetime.datetime.fromisoformat(weather.reference_time('iso')).replace(tzinfo=None) < end:
-                    embed = discord.Embed(color=0x03c6fc, title=f'Weather in {place}', description=weather.detailed_status)
-                    embed.set_thumbnail(url=weather.weather_icon_url())
-                    temp = weather.temperature('fahrenheit')
-                    s = f"Low: {temp['temp_min']} °F High: {temp['temp_max']} °F Feels like: {temp['feels_like']} °F"
-                    embed.add_field(name=f"Temperature: {temp['temp']} °F",value=s)
-                    if weather.rain != {}:
-                        if len(weather.rain) == 1:
-                            embed.add_field(name="Rain:",value=f"Next hour: {weather.rain['1h']} mm")
-                        else:
-                            embed.add_field(name="Rain:",value=f"Next hour: {weather.rain['1h']} mm\nNext 3 hours: {weather.rain['3h']} mm")
-                    await message.channel.send(embed=embed)
+            iters = 4 if 'tomorrow' not in message.content.lower() else 1
+            for i in range(1, iters + 1):
+                embed = discord.Embed(color=0x03c6fc) if i != 1 else discord.Embed(color=0x03c6fc, title=f'Forecast for {place}')
+                day = one_call.forecast_daily[i]
+                embed.set_thumbnail(url=day.weather_icon_url())
+                date = datetime.datetime.fromtimestamp(day.ref_time).strftime('%b %#d')
+                embed.add_field(name=date,
+                                    value = f"Low: {day.temperature('fahrenheit')['min']} °F High: {day.temperature('fahrenheit')['max']} °F")
+                await message.channel.send(embed=embed)
 
     #Generates tinyurl links
     elif message.content.lower().startswith('tinyurl') or message.content.lower().startswith('url'):
-        if 'tinyurl' in message:
+        if 'tinyurl' in message.content:
             s = message.content.replace('tinyurl','').strip()
         else:
             s = message.content.replace('url','').strip()
@@ -534,9 +522,9 @@ async def on_message(message):
         await message.channel.send(f'https://www.tinyurl.com/{s}')
 
     #defines words
-    elif message.content.lower().startswith('define') or \
+    elif message.content.lower().startswith('!define') or message.content.lower().startswith('define') or \
          (message.content.lower().startswith('what does') and message.content.lower().endswith('mean')):
-        if 'define' in message.content:
+        if 'define' in message.content.lower():
             s = removeCommand(message.content)
         else:
             s = message.content.replace('what does', '').replace('mean', '').strip()
