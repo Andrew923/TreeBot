@@ -115,7 +115,8 @@ async def on_message(message):
         embed.add_field(name='!pin', value="specify 'from' or 'to' to get pinned messages from one channel sent to another")
         embed.add_field(name='!remind', value='be reminded of something')
         embed.add_field(name='!weather', value="See weather at a location that is setup on first time a user calls or when '!weather setup' is called")
-        embed.add_field(name=empty_char, value="See the ReadMe [here](https://github.com/Andrew923/TreeBot#readme) to view usage syntax", inline=False)
+        embed.add_field(name='!define', value='Defines word')
+        embed.set_footer(text="See the ReadMe [here](https://github.com/Andrew923/TreeBot#readme) to view usage syntax")
         await message.channel.send(embed=embed)
 
     elif message.content.lower() == 'hello':
@@ -331,19 +332,19 @@ async def on_message(message):
                 await message.channel.send("Cancelled")
             else:
                 if 'start' in msg.content:
-                    s = msg.content.replace('start', '').strip()
+                    s = msg.content.lower().replace('start', '').strip()
                     event.start = parseDate(s)
                 elif 'end' in msg.content:
-                    s = msg.content.replace('end', '').strip()
+                    s = msg.content.lower().replace('end', '').strip()
                     event.end = parseDate(s)
                 elif 'summary' in msg.content:
-                    s = msg.content.replace('summary', '').strip()
+                    s = msg.content.lower().replace('summary', '').strip()
                     event.summary = s
                 elif 'location' in msg.content:
-                    s = msg.content.replace('location', '').strip()
+                    s = msg.content.lower().replace('location', '').strip()
                     event.location = s
                 elif 'description' in msg.content:
-                    s = msg.content.replace('description', '').strip()
+                    s = msg.content.lower().replace('description', '').strip()
                     event.description = s
                 calendar.update_event(event)
                 embed = discord.Embed(color=0x03c6fc, title='Event Updated')
@@ -459,7 +460,7 @@ async def on_message(message):
     elif message.content.lower().startswith('!w'):
         wDict = read('weather.json')
         if 'in' in message.content.lower():
-            place = removeCommand(message.content.replace(' in ', ' ')).strip()
+            place = removeCommand(message.content.lower().replace(' in ', ' ')).strip()
         #setup location
         elif message.author.id not in wDict or 'setup' in message.content:
             await message.channel.send("Setting up location. Please enter city name or coordinates (lat, lon).")
@@ -520,9 +521,9 @@ async def on_message(message):
     #Generates tinyurl links
     elif message.content.lower().startswith('tinyurl') or message.content.lower().startswith('url'):
         if 'tinyurl' in message.content:
-            s = message.content.replace('tinyurl','').strip()
+            s = message.content.lower().replace('tinyurl','').strip()
         else:
-            s = message.content.replace('url','').strip()
+            s = message.content.lower().replace('url','').strip()
         s = ('-').join(s.split())
         await message.channel.send(f'https://www.tinyurl.com/{s}')
 
@@ -532,7 +533,7 @@ async def on_message(message):
         if 'define' in message.content.lower():
             s = removeCommand(message.content)
         else:
-            s = message.content.replace('what does', '').replace('mean', '').strip()
+            s = message.content.lower().replace('what does', '').replace('mean', '').strip()
         count = 0
         embed = discord.Embed(color=0x03c6fc, title=f'Definition of {s}')
         for definition in Dictionary(s, 5).meanings():
