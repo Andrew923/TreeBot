@@ -16,26 +16,26 @@ from pyowm.owm import OWM
 from pydictionary import Dictionary
 
 # comment out between uploading
-import config
-token = config.discord_token
-github = Github(config.github_token)
-calendar = GoogleCalendar("andrewyu41213@gmail.com")
-canvas = Canvas('https://canvas.cmu.edu/', config.API_KEY)
-owm = OWM(config.weather)
+# import config
+# token = config.discord_token
+# github = Github(config.github_token)
+# calendar = GoogleCalendar("andrewyu41213@gmail.com")
+# canvas = Canvas('https://canvas.cmu.edu/', config.API_KEY)
+# owm = OWM(config.weather)
 
-# token = Credentials(
-#     token=os.getenv('token'),
-#     refresh_token=os.getenv('refresh_token'),
-#     client_id=os.getenv('client_id'),
-#     client_secret=os.getenv('client_secret'),
-#     scopes=['https://www.googleapis.com/auth/calendar'],
-#     token_uri='https://oauth2.googleapis.com/token'
-# )
-# calendar = GoogleCalendar(credentials=token)
-# token = os.getenv('config.token')
-# github = Github(os.getenv('github_token'))
-# canvas = Canvas('https://canvas.cmu.edu/', os.getenv('canvasapikey'))
-# owm = OWM(os.getenv('weatherkey'))
+token = Credentials(
+    token=os.getenv('token'),
+    refresh_token=os.getenv('refresh_token'),
+    client_id=os.getenv('client_id'),
+    client_secret=os.getenv('client_secret'),
+    scopes=['https://www.googleapis.com/auth/calendar'],
+    token_uri='https://oauth2.googleapis.com/token'
+)
+calendar = GoogleCalendar(credentials=token)
+token = os.getenv('config.token')
+github = Github(os.getenv('github_token'))
+canvas = Canvas('https://canvas.cmu.edu/', os.getenv('canvasapikey'))
+owm = OWM(os.getenv('weatherkey'))
 
 
 repository = github.get_user().get_repo('TreeBot')
@@ -500,9 +500,14 @@ async def on_message(message):
             if today.rain != {}:
                 embed.add_field(name="It will rain today!", value=f"Amount: {today.rain['all']} mm")
             await message.channel.send(embed=embed)
-        #not really finished (not sure how to make it look decent), gives weather forecast, defaults daily
+        #gives weather forecast, defaults daily
         else:
-            iters = 4 if 'tomorrow' not in message.content.lower() else 1
+            if 'tomorrow'in message.content.lower():
+                iters = 1
+            elif message.content.lower().split()[-1].isdigit():
+                iters = int(message.content.lower().split()[-1])
+            else:
+                iters = 4 
             for i in range(1, iters + 1):
                 embed = discord.Embed(color=0x03c6fc) if i != 1 else discord.Embed(color=0x03c6fc, title=f'Forecast for {place}')
                 day = one_call.forecast_daily[i]
