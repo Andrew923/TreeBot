@@ -7,3 +7,4 @@ gcsa
 canvasapi
 pyowm
 Py-Dictionary
+wolframalpha

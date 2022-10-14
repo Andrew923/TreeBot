@@ -14,29 +14,33 @@ from google.oauth2.credentials import Credentials
 from canvasapi import Canvas
 from pyowm.owm import OWM
 from pydictionary import Dictionary
+import wolframalpha
+import platform
 
 # comment out between uploading
-# import config
-# token = config.discord_token
-# github = Github(config.github_token)
-# calendar = GoogleCalendar("andrewyu41213@gmail.com")
-# canvas = Canvas('https://canvas.cmu.edu/', config.API_KEY)
-# owm = OWM(config.weather)
-
-token = Credentials(
-    token=os.getenv('token'),
-    refresh_token=os.getenv('refresh_token'),
-    client_id=os.getenv('client_id'),
-    client_secret=os.getenv('client_secret'),
-    scopes=['https://www.googleapis.com/auth/calendar'],
-    token_uri='https://oauth2.googleapis.com/token'
-)
-calendar = GoogleCalendar(credentials=token)
-token = os.getenv('config.token')
-github = Github(os.getenv('github_token'))
-canvas = Canvas('https://canvas.cmu.edu/', os.getenv('canvasapikey'))
-owm = OWM(os.getenv('weatherkey'))
-
+if platform.platform() == 'Windows-10-10.0.22000-SP0':
+    import config
+    token = config.discord_token
+    github = Github(config.github_token)
+    calendar = GoogleCalendar("andrewyu41213@gmail.com")
+    canvas = Canvas('https://canvas.cmu.edu/', config.API_KEY)
+    owm = OWM(config.weather)
+    wolfram = wolframalpha.Client(config.wolf)
+else:
+    token = Credentials(
+        token=os.getenv('token'),
+        refresh_token=os.getenv('refresh_token'),
+        client_id=os.getenv('client_id'),
+        client_secret=os.getenv('client_secret'),
+        scopes=['https://www.googleapis.com/auth/calendar'],
+        token_uri='https://oauth2.googleapis.com/token'
+    )
+    calendar = GoogleCalendar(credentials=token)
+    token = os.getenv('config.token')
+    github = Github(os.getenv('github_token'))
+    canvas = Canvas('https://canvas.cmu.edu/', os.getenv('canvasapikey'))
+    owm = OWM(os.getenv('weatherkey'))
+    wolfram = wolframalpha.Client(os.getenv('wolf'))
 
 repository = github.get_user().get_repo('TreeBot')
 mention_search = re.compile('<@!?(\d+)>')
@@ -533,7 +537,7 @@ async def on_message(message):
         if 'define' in message.content.lower():
             s = removeCommand(message.content)
         else:
-            s = message.content.lower().replace('what does', '').replace('mean', '').strip()
+            s = ' '.join(message.content.lower().split()[2:-1])
         count = 0
         embed = discord.Embed(color=0x03c6fc, title=f'Definition of {s}')
         for definition in Dictionary(s, 5).meanings():
@@ -541,6 +545,13 @@ async def on_message(message):
             embed.add_field(name = empty_char, value = f"{count}. {definition}", inline=False)
         if count == 0: embed.add_field(name=empty_char, value=f"No meaning of {s} found")
         await message.channel.send(embed=embed)
+
+    #wolfram alpha
+    elif message.content.lower().startswith('wolf'):
+        try:
+            await message.channel.send(next(wolfram.query(removeCommand(message.content)).results).text)
+        except:
+            await message.channel.send("Something went wrong")
 
 #snipe (for deleted messages)
 @client.event
