@@ -17,8 +17,8 @@ from pydictionary import Dictionary
 import wolframalpha
 import platform
 
-# comment out between uploading
-if platform.platform() == 'Windows-10-10.0.22000-SP0':
+# checks platform
+if platform.uname().node == 'Andrew':
     import config
     token = config.discord_token
     github = Github(config.github_token)
@@ -120,6 +120,7 @@ async def on_message(message):
         embed.add_field(name='!remind', value='be reminded of something')
         embed.add_field(name='!weather', value="See weather at a location that is setup on first time a user calls or when '!weather setup' is called")
         embed.add_field(name='!define', value='Defines word')
+        embed.add_field(name='wolf', value='calls Wolfram Alpha')
         embed.set_footer(text="See the ReadMe [here](https://github.com/Andrew923/TreeBot#readme) to view usage syntax")
         await message.channel.send(embed=embed)
 
@@ -193,7 +194,12 @@ async def on_message(message):
     #snipe
     elif message.content.lower().startswith('!snipe'):
         try:
-            em = discord.Embed(color=0x03c6fc, title = f"Last deleted message in #{message.channel.name}", description = snipe_content[message.channel.id])
+            description = snipe_content[message.channel.id]
+            if 'https://' in description:
+                em = discord.Embed(color=0x03c6fc, title = f"Last deleted message in #{message.channel.name}")
+                em.set_image(url = description)
+            else:
+                em = discord.Embed(color=0x03c6fc, title = f"Last deleted message in #{message.channel.name}", description = snipe_content[message.channel.id])
             em.set_footer(text = f"This message was sent by {snipe_author[message.channel.id]}")
             await message.channel.send(embed = em)
         except KeyError:
@@ -226,6 +232,7 @@ async def on_message(message):
     elif message.content.lower().startswith('!remind'):
         s = removeCommand(message.content.lower())
         time, reminder = parseDate(s[:s.find(',')]), s[s.find(',') + 1:]
+        await message.channel.send(f"You will be reminded to {reminder} at {time.strftime('%#m/%#d %#I:%M %p')}")
         await asyncio.sleep(int((time - datetime.datetime.now()).total_seconds()))
         await message.channel.send(f"{message.author.mention} {reminder}")
 
@@ -503,7 +510,13 @@ async def on_message(message):
             s = f"Low: {today.temperature('fahrenheit')['min']} °F High: {today.temperature('fahrenheit')['max']} °F"
             embed.add_field(name=f"Temperature: {curr_temp['temp']} °F (Feels like: {curr_temp['feels_like']} °F)",value=s, inline=False)
             if today.rain != {}:
-                embed.add_field(name="It will rain today!", value=f"Amount: {today.rain['all']} mm")
+                times = []
+                for i in range(24):
+                    hour = one_call.forecast_hourly[i]
+                    time = datetime.datetime.fromtimestamp(hour.ref_time)
+                    if hour.rain != {} and (time.strftime('%d') == datetime.datetime.now().strftime('%d')):
+                        times.append(time.strftime('%#I %p'))
+                embed.add_field(name="It will rain today!", value=f"Times: {', '.join(times)}")
             await message.channel.send(embed=embed)
         #gives weather forecast, defaults daily
         else:
@@ -549,14 +562,31 @@ async def on_message(message):
     #wolfram alpha
     elif message.content.lower().startswith('wolf'):
         try:
-            await message.channel.send(next(wolfram.query(removeCommand(message.content)).results).text)
+            s = removeCommand(message.content)
+            results = wolfram.query(s)
+            embed = discord.Embed(color=0x03c6fc, title=f'{s.title()}')
+            for pod in results.pods:
+                title = pod.title
+                description = ''
+                for sub in pod.subpods:
+                    if sub.plaintext == None: continue
+                    else:
+                        description += sub.plaintext + '\n'
+                if description == '': continue
+                if 'result' in title.lower() or 'solutions' in title.lower():
+                    description = '`' + description + '`'
+                embed.add_field(name=title, value=description, inline=False)
+            await message.channel.send(embed=embed)
         except:
-            await message.channel.send("Something went wrong")
+            await message.channel.send("idk man")
 
 #snipe (for deleted messages)
 @client.event
 async def on_message_delete(message):
-    snipe_content[message.channel.id] = message.content.lower()
+    if message.attachments != []:
+        snipe_content[message.channel.id] = message.attachments[0].url
+    else:
+        snipe_content[message.channel.id] = message.content.lower()
     snipe_author[message.channel.id] = message.author
     await asyncio.sleep(120)
     del snipe_author[message.channel.id]
@@ -578,7 +608,11 @@ async def on_message_edit(before, after):
         channel = after.channel
         pins = read('pins.json')
         if(channel.id in pins['from']):
-            embed=discord.Embed(color=0x03c6fc, description=after.content)
+            if after.attachments != []:
+                embed=discord.Embed(color=0x03c6fc)
+                embed.set_image(url=after.attachments[0].url)
+            else:
+                embed=discord.Embed(color=0x03c6fc, description=after.content)
             embed.set_author(name=after.author.display_name, icon_url=after.author.avatar)
             embed.add_field(name=empty_char, value=f"[Jump to Message]({after.jump_url})")
             await client.get_channel(pins['to'][pins['from'].index(channel.id)]).send(embed=embed)

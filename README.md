@@ -25,3 +25,4 @@ TreeBot is a Discord bot that has cool entertainment and moderation commands. Yo
 | pin | Redirect pinned messages from one channel to another to overcome Discord's 50 pin limit. Use `!pin from` in the channel to watch for pins in and `!pin to` in the channel to forward pins to| `!pin <from / to>` |
 | remind | TreeBot reminds you. This uses date parsing to understand whatever you say | `!remind <when to remind you>, <what to remind>` |
 | weather | See a weather or weather forecast at a set location (setup using `!weather setup`), can also be used to see weather at any location | `!<weather> [setup] [forecast]`<br>`!weather in <location> `|
+| WolframAlpha | Query Wolfram Alpha | `wolf <query>` |
