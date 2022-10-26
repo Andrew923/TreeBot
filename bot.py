@@ -432,20 +432,20 @@ async def on_message(message):
                         if(count == msg):
                             assignment = a
                     s = assignment.description
-                    output = ''
-                    for line in (s.replace('<p>', '').replace('</p>','')).splitlines():
-                        if("Due" in line):
-                            date = line[line.index('/') - 2:line.index('/') + 3].strip() + '\n'
-                        else:
-                            while '(' in line:
-                                line = line[:line.index('(')] + line[line.index(')') + 1:]
-                            output += line + '\n'
-                    for c in output:
-                        if not c.isdigit():
-                            if c != '.' and c != ',' and c != ':' and c != '\n':
-                                output = output.replace(c,'')
-                    output = date + output
-                    embed = discord.Embed(color=0x03c6fc,title=assignment.name, description=output)
+                    # output = ''
+                    # for line in (s.replace('<p>', '').replace('</p>','')).splitlines():
+                    #     if("Due" in line):
+                    #         date = line[line.index('/') - 2:line.index('/') + 3].strip() + '\n'
+                    #     else:
+                    #         while '(' in line:
+                    #             line = line[:line.index('(')] + line[line.index(')') + 1:]
+                    #         output += line + '\n'
+                    # for c in output:
+                    #     if not c.isdigit():
+                    #         if c != '.' and c != ',' and c != ':' and c != '\n':
+                    #             output = output.replace(c,'')
+                    # output = date + output
+                    embed = discord.Embed(color=0x03c6fc,title=assignment.name, description=s)
                     await message.channel.send(embed=embed)
             elif(msg.lower() == 'm' or 'module' in msg.lower()):
                 embed = canvasEmbed(course.get_modules(), course.name)
