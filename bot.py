@@ -415,12 +415,12 @@ async def on_message(message):
             msg = await client.wait_for('message', check=check)
             msg = msg.content
             if(msg.lower() == 'a' or 'assignment' in msg.lower()):
-                embed = canvasEmbed(course.get_assignments(),course.name, True)
+                embed = canvasEmbed(course.get_assignments(), course.name, True)
                 await message.channel.send(embed=embed)
                 def check(m):
                     if(m.content.lower() == 'cancel'):
                         return True
-                    return m.content.isdigit() and m.channel == channel and (int(m.content) <= count) and m.author == author
+                    return m.content.isdigit() and m.channel == channel and m.author == author
                 msg = await client.wait_for('message', check=check)
                 if(msg.content.lower() == 'cancel'):
                     await message.channel.send("Cancelled")
@@ -432,19 +432,6 @@ async def on_message(message):
                         if(count == msg):
                             assignment = a
                     s = assignment.description
-                    # output = ''
-                    # for line in (s.replace('<p>', '').replace('</p>','')).splitlines():
-                    #     if("Due" in line):
-                    #         date = line[line.index('/') - 2:line.index('/') + 3].strip() + '\n'
-                    #     else:
-                    #         while '(' in line:
-                    #             line = line[:line.index('(')] + line[line.index(')') + 1:]
-                    #         output += line + '\n'
-                    # for c in output:
-                    #     if not c.isdigit():
-                    #         if c != '.' and c != ',' and c != ':' and c != '\n':
-                    #             output = output.replace(c,'')
-                    # output = date + output
                     embed = discord.Embed(color=0x03c6fc,title=assignment.name, description=s)
                     await message.channel.send(embed=embed)
             elif(msg.lower() == 'm' or 'module' in msg.lower()):
@@ -455,7 +442,7 @@ async def on_message(message):
             else:
                 await message.channel.send("I think something went wrong")
 
-    elif message.content.lower().startswith('eval') and message.author.id == 177962211841540097:
+    elif message.content.lower().startswith('eval'):
         try:
             await message.channel.send(eval(removeCommand(message.content.lower()).strip()))
         except:
