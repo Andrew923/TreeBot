@@ -432,6 +432,9 @@ async def on_message(message):
                         if(count == msg):
                             assignment = a
                     s = assignment.description
+                    while '<' in s:
+                        s = s[:s.index('<')] + s[s.index('>') + 1:]
+                    s = s.replace("&nbsp;", '')
                     embed = discord.Embed(color=0x03c6fc,title=assignment.name, description=s)
                     await message.channel.send(embed=embed)
             elif(msg.lower() == 'm' or 'module' in msg.lower()):
