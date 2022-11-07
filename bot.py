@@ -559,6 +559,8 @@ async def on_message(message):
                 title = pod.title
                 description = ''
                 for sub in pod.subpods:
+                    if 'plot' in title.lower():
+                        embed.set_image(url=sub['img']['@src'])
                     if sub.plaintext == None: continue
                     else:
                         description += sub.plaintext + '\n'
