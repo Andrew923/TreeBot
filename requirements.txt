@@ -8,3 +8,4 @@ canvasapi
 pyowm
 Py-Dictionary
 wolframalpha
+requests

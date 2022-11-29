@@ -1,10 +1,6 @@
-import random
+import random, datetime, asyncio, re, os, platform
 from pokedex import pokedex
-import datetime
-import asyncio
-import re
-import os
-import discord
+import discord, wolframalpha, requests
 from github import Github
 import dateparser
 EDT = datetime.timezone(datetime.timedelta(hours=-4))
@@ -14,8 +10,6 @@ from google.oauth2.credentials import Credentials
 from canvasapi import Canvas
 from pyowm.owm import OWM
 from pydictionary import Dictionary
-import wolframalpha
-import platform
 
 # checks platform
 if platform.uname().node == 'Andrew':
@@ -26,6 +20,8 @@ if platform.uname().node == 'Andrew':
     canvas = Canvas('https://canvas.cmu.edu/', config.API_KEY)
     owm = OWM(config.weather)
     wolfram = wolframalpha.Client(config.wolf)
+    headers = {"X-RapidAPI-Key": config.rapidapi,
+        "X-RapidAPI-Host": "mashape-community-urban-dictionary.p.rapidapi.com"}
 else:
     token = Credentials(
         token=os.getenv('token'),
@@ -41,6 +37,8 @@ else:
     canvas = Canvas('https://canvas.cmu.edu/', os.getenv('canvasapikey'))
     owm = OWM(os.getenv('weatherkey'))
     wolfram = wolframalpha.Client(os.getenv('wolf'))
+    headers = {"X-RapidAPI-Key": os.getenv('rapidapi'),
+        "X-RapidAPI-Host": "mashape-community-urban-dictionary.p.rapidapi.com"}
 
 repository = github.get_user().get_repo('TreeBot')
 mention_search = re.compile('<@!?(\d+)>')
@@ -80,6 +78,16 @@ def canvasEmbed(iterable, title, count = False, emptyName=True):
         if(count): thing = f"{n}. {thing}"
         embed.add_field(name=empty_char,value=thing,inline=False) if emptyName else embed.add_field(name=thing,value=empty_char,inline=False)
     embed.set_footer(text="Type 'Cancel' to stop")
+    return embed
+
+def urbandefine(s):
+    response = requests.request("GET", "https://mashape-community-urban-dictionary.p.rapidapi.com/define",
+                                headers=headers, params={"term":s})
+    if eval(response.text)['list'] == list(): return discord.Embed(color=0x03c6fc, title=f'Definition of {s}', description="Nothing found :(")
+    result = eval(response.text)['list'][0]
+    embed = discord.Embed(color=0x03c6fc, title=f'Definition of {s}', description=result['definition'])
+    embed.add_field(name = "Example", value = ' '.join(result['example'].split()))
+    embed.set_footer(text=result['permalink'])
     return embed
 
 @client.event
@@ -546,8 +554,14 @@ async def on_message(message):
         for definition in Dictionary(s, 5).meanings():
             count += 1
             embed.add_field(name = empty_char, value = f"{count}. {definition}", inline=False)
-        if count == 0: embed.add_field(name=empty_char, value=f"No meaning of {s} found")
+        if count == 0: 
+            embed = urbandefine(s)
         await message.channel.send(embed=embed)
+
+    #urban dictionary
+    elif message.content.lower().startswith('urban') or message.content.lower().startswith('!urban'):
+        embed = urbandefine(removeCommand(message.content))
+        message.channel.send(embed=embed)
 
     #wolfram alpha
     elif message.content.lower().startswith('wolf'):
