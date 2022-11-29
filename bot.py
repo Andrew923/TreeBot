@@ -86,8 +86,8 @@ def urbandefine(s):
     if eval(response.text)['list'] == list(): return discord.Embed(color=0x03c6fc, title=f'Definition of {s}', description="Nothing found :(")
     result = eval(response.text)['list'][0]
     embed = discord.Embed(color=0x03c6fc, title=f'Definition of {s}', description=result['definition'])
-    embed.add_field(name = "Example", value = ' '.join(result['example'].split()))
-    embed.set_footer(text=result['permalink'])
+    embed.add_field(name="Example", value = ' '.join(result['example'].split()), inline=False)
+    embed.add_field(name=empty_char, value=f"[Urban Dictionary]({result['permalink']})")
     return embed
 
 @client.event
@@ -561,7 +561,7 @@ async def on_message(message):
     #urban dictionary
     elif message.content.lower().startswith('urban') or message.content.lower().startswith('!urban'):
         embed = urbandefine(removeCommand(message.content))
-        message.channel.send(embed=embed)
+        await message.channel.send(embed=embed)
 
     #wolfram alpha
     elif message.content.lower().startswith('wolf'):
