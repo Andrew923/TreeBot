@@ -9,3 +9,4 @@ pyowm
 Py-Dictionary
 wolframalpha
 requests
+google-search-results
