@@ -10,6 +10,7 @@ from google.oauth2.credentials import Credentials
 from canvasapi import Canvas
 from pyowm.owm import OWM
 from pydictionary import Dictionary
+from serpapi import GoogleSearch
 
 # checks platform
 if platform.uname().node == 'Andrew':
@@ -22,6 +23,7 @@ if platform.uname().node == 'Andrew':
     wolfram = wolframalpha.Client(config.wolf)
     headers = {"X-RapidAPI-Key": config.rapidapi,
         "X-RapidAPI-Host": "mashape-community-urban-dictionary.p.rapidapi.com"}
+    serpapi = config.serpapi
 else:
     token = Credentials(
         token=os.getenv('token'),
@@ -39,6 +41,7 @@ else:
     wolfram = wolframalpha.Client(os.getenv('wolf'))
     headers = {"X-RapidAPI-Key": os.getenv('rapidapi'),
         "X-RapidAPI-Host": "mashape-community-urban-dictionary.p.rapidapi.com"}
+    serpapi = os.getenv('serpapi')
 
 repository = github.get_user().get_repo('TreeBot')
 mention_search = re.compile('<@!?(\d+)>')
@@ -585,6 +588,18 @@ async def on_message(message):
             await message.channel.send(embed=embed)
         except:
             await message.channel.send("idk man")
+
+    elif message.content.lower().startswith('!search'):
+        query = removeCommand(message.content)
+        params = {"q": query, "tbm": "isch", "api_key": serpapi}
+        dict = GoogleSearch(params).get_dict()
+        index = random.randint(0, 5)
+        try: link = dict['images_results'][index]['thumbnail']
+        except: link = 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Twemoji_1f4a9.svg/176px-Twemoji_1f4a9.svg.png'
+        embed = discord.Embed(color=0x03c6fc, title=f'{query.capitalize()}', 
+                              description=f"[Google]({dict['search_information']['menu_items'][0]['link']})")
+        embed.set_image(url=link)
+        await message.channel.send(embed=embed)
 
 #snipe (for deleted messages)
 @client.event
