@@ -589,7 +589,8 @@ async def on_message(message):
         except:
             await message.channel.send("idk man")
 
-    elif message.content.lower().startswith('!search'):
+    elif (message.content.lower().startswith('!search')
+         or message.content.lower().startswith('!show')):
         query = removeCommand(message.content)
         params = {"q": query, "tbm": "isch", "api_key": serpapi}
         dict = GoogleSearch(params).get_dict()
