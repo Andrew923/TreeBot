@@ -11,6 +11,7 @@ from canvasapi import Canvas
 from pyowm.owm import OWM
 from pydictionary import Dictionary
 from serpapi import GoogleSearch
+from art import *
 
 # checks platform
 if platform.uname().node == 'Andrew':
@@ -92,6 +93,13 @@ def urbandefine(s):
     embed.add_field(name="Example", value = ' '.join(result['example'].split()), inline=False)
     embed.add_field(name=empty_char, value=f"[Urban Dictionary]({result['permalink']})")
     return embed
+
+def ascii(text, size='random'):
+    if size.lower().startswith('s'): font='random-small'
+    elif size.lower().startswith('m'): font='random-medium'
+    elif size.lower().startswith('l'): font='random-large'
+    else: font=size
+    return text2art(text, font)
 
 @client.event
 async def on_ready():
@@ -600,6 +608,13 @@ async def on_message(message):
                               description=f"[Google]({dict['search_information']['menu_items'][0]['link']})")
         embed.set_image(url=link)
         await message.channel.send(embed=embed)
+
+    elif message.content.lower().startswith('!ascii'):
+        s = removeCommand(message.content).split()
+        if s[-1] in 'smallmediumlarge': size=s.pop()
+        else: size='random'
+        await message.channel.send('```' + ascii(' '.join(s), size) + '```')
+
 
 #snipe (for deleted messages)
 @client.event

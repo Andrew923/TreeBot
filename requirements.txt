@@ -10,3 +10,4 @@ Py-Dictionary
 wolframalpha
 requests
 google-search-results
+art
