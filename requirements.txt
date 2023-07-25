@@ -11,3 +11,4 @@ wolframalpha
 requests
 google-search-results
 art
+numpy
