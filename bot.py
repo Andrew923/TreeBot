@@ -118,7 +118,7 @@ async def on_message(message):
         if ("you've caught" in embed['description']) and (remind[str(user.id)] == "yes"):
             await asyncio.sleep(3*60*60)
             await message.channel.send(f"{user.mention}, it is time for you to catch the pokemon")
-    except Error as e:
+    except Exception as e:
         pass
 
     if message.author == client.user:
@@ -471,15 +471,15 @@ async def on_message(message):
     elif message.content.lower().startswith('eval'):
         try:
             await message.channel.send(eval(removeCommand(message.content.lower()).strip()))
-        except Error as e:
-            await message.channel.send(f"{e}")
+        except Exception as e:
+            await message.channel.send(f"{e.__class__.__name__}: {e}")
 
     elif message.content.lower().startswith('exec') and message.author.id == 177962211841540097:
         try:
             exec(removeCommand(message.content.lower()).strip())  
             await message.channel.send("Comand Executed")
-        except Error as e:
-            await message.channel.send(f"{e}")
+        except Exception as e:
+            await message.channel.send(f"{e.__class__.__name__}: {e}")
 
     elif message.content.lower().startswith('!w'):
         wDict = read('weather.json')
@@ -503,8 +503,8 @@ async def on_message(message):
                 msg = msg.content
                 try:
                     lat, lon = float(msg[:msg.index(',')]), float(msg[msg.index(',')+1:])
-                except Error as e:
-                    await message.channel.send(f"{e}")
+                except Exception as e:
+                    await message.channel.send(f"{e.__class__.__name__}: {e}")
                 geomgr = owm.geocoding_manager()
                 place = geomgr.reverse_geocode(lat, lon)[0].name
                 wDict[message.author.id] = place
@@ -598,7 +598,7 @@ async def on_message(message):
                     description = '`' + description + '`'
                 embed.add_field(name=title, value=description, inline=False)
             await message.channel.send(embed=embed)
-        except Error as e:
+        except Exception as e:
             await message.channel.send("idk man")
 
     elif (message.content.lower().startswith('!search')
@@ -608,11 +608,12 @@ async def on_message(message):
         dict = GoogleSearch(params).get_dict()
         index = random.randint(0, 5)
         try: link = dict['images_results'][index]['thumbnail']
-        except Error as e: link = 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Twemoji_1f4a9.svg/176px-Twemoji_1f4a9.svg.png'
-        embed = discord.Embed(color=0x03c6fc, title=f'{query.capitalize()}', 
-                              description=f"[Google]({dict['search_information']['menu_items'][0]['link']})")
-        embed.set_image(url=link)
-        await message.channel.send(embed=embed)
+        except: link = 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Twemoji_1f4a9.svg/176px-Twemoji_1f4a9.svg.png'
+        # embed = discord.Embed(color=0x03c6fc, title=f'{query.capitalize()}', 
+        #                       description=f"[Google]({dict['search_information']['menu_items'][0]['link']})")
+        # embed.set_image(url=link)
+        # await message.channel.send(embed=embed)
+        await message.channel.send(link)
 
     elif message.content.lower().startswith('!ascii'):
         s = removeCommand(message.content).split()
