@@ -1,4 +1,4 @@
-import random, datetime, asyncio, re, os, platform
+import random, datetime, asyncio, re, os, platform, json
 from pokedex import pokedex
 import discord, wolframalpha, requests
 from github import Github
@@ -470,13 +470,13 @@ async def on_message(message):
 
     elif message.content.lower().startswith('eval'):
         try:
-            await message.channel.send(eval(removeCommand(message.content.lower()).strip()))
+            await message.channel.send(eval(removeCommand(message.content).strip()))
         except Exception as e:
             await message.channel.send(f"{e.__class__.__name__}: {e}")
 
     elif message.content.lower().startswith('exec') and message.author.id == 177962211841540097:
         try:
-            exec(removeCommand(message.content.lower()).strip())  
+            exec(removeCommand(message.content).strip())  
             await message.channel.send("Comand Executed")
         except Exception as e:
             await message.channel.send(f"{e.__class__.__name__}: {e}")
