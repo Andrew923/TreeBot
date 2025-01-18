@@ -16,13 +16,14 @@ from math import *
 from bisect import *
 from collections import *
 import numpy as np
+import ollama
 
 # checks platform
 if platform.uname().node == 'Andrew' or 'oracle' in platform.uname().release:
     import config
     token = config.discord_token
     github = Github(config.github_token)
-    calendar = GoogleCalendar("andrewyu41213@gmail.com")
+    # calendar = GoogleCalendar("andrewyu41213@gmail.com")
     canvas = Canvas('https://canvas.cmu.edu/', config.API_KEY)
     owm = OWM(config.weather)
     wolfram = wolframalpha.Client(config.wolf)
@@ -146,6 +147,20 @@ async def on_message(message):
         embed.add_field(name='wolf', value='calls Wolfram Alpha')
         embed.set_footer(text="See the ReadMe [here](https://github.com/Andrew923/TreeBot#readme) to view usage syntax")
         await message.channel.send(embed=embed)
+
+    # LLM stuff
+    elif message.content.lower().startswith('?'):
+        uncensor = message.content.lower().startswith('??')
+        model = "llama2-uncensored" if uncensor else "gemma2:2b"
+        msg = removeCommand(message.content.lower())
+        if msg:
+            response = ollama.chat(model=model, messages=[
+              {
+                'role': 'user',
+                'content': f'Respond very concisely. {msg}',
+              },
+            ])
+            await message.channel.send(response['message']['content'])
 
     elif message.content.lower() == 'hello':
         await message.channel.send('Hello!')
@@ -582,7 +597,7 @@ async def on_message(message):
     elif message.content.lower().startswith('wolf'):
         try:
             s = removeCommand(message.content)
-            results = wolfram.query(s)
+            results = await wolfram.aquery(s)
             embed = discord.Embed(color=0x03c6fc, title=f'{s.title()}')
             for pod in results.pods:
                 title = pod.title
@@ -599,7 +614,7 @@ async def on_message(message):
                 embed.add_field(name=title, value=description, inline=False)
             await message.channel.send(embed=embed)
         except Exception as e:
-            await message.channel.send("idk man")
+            await message.channel.send(str(e))
 
     elif (message.content.lower().startswith('!search')
          or message.content.lower().startswith('!show')):
