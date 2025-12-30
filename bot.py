@@ -150,8 +150,8 @@ async def on_message(message):
 
     # LLM stuff
     elif message.content.lower().startswith('?'):
-        uncensor = message.content.lower().startswith('??')
-        model = "llama2-uncensored" if uncensor else "gemma2:2b"
+        model2 = message.content.lower().startswith('??')
+        model = ["gemma3:1b-it-qat", "gemma3:4b-it-qat"][int(model2)]
         msg = removeCommand(message.content.lower())
         if msg:
             response = ollama.chat(model=model, messages=[
