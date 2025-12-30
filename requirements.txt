@@ -1,6 +1,5 @@
 git+https://github.com/Rapptz/discord.py
 pokedex.py
-datetime
 PyGithub
 dateparser
 gcsa
@@ -12,3 +11,5 @@ requests
 google-search-results
 art
 numpy
+ollama
+aiohttp
