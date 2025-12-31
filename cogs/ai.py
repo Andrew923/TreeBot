@@ -15,7 +15,7 @@ class AICog(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.context_builder = AIContextBuilder()
+        self.context_builder = AIContextBuilder(bot.github)
 
     async def _handle_ai_query(
         self,
@@ -35,12 +35,17 @@ class AICog(commands.Cog):
             # Prepare the messages for Ollama
             messages = []
 
-            # Add system context if available
-            if context.system_context:
-                messages.append({
-                    'role': 'system',
-                    'content': f"You are a helpful assistant. {context.system_context}"
-                })
+            # If we have conversation history, use it
+            if context.conversation_history:
+                # Use existing conversation history
+                messages = context.conversation_history.copy()
+            else:
+                # New conversation - add system context if available
+                if context.system_context:
+                    messages.append({
+                        'role': 'system',
+                        'content': f"You are a helpful assistant. {context.system_context}"
+                    })
 
             # Build user message
             if query:
@@ -63,6 +68,24 @@ class AICog(commands.Cog):
                     messages=messages
                 )
                 reply = response['message']['content']
+
+                # Store the conversation
+                # Save user message
+                self.context_builder.conversation_storage.add_message(
+                    thread_id=context.thread_id,
+                    role='user',
+                    content=user_content,
+                    author=ctx.author.display_name,
+                    channel_id=ctx.channel.id
+                )
+
+                # Save assistant response
+                self.context_builder.conversation_storage.add_message(
+                    thread_id=context.thread_id,
+                    role='assistant',
+                    content=reply,
+                    channel_id=ctx.channel.id
+                )
 
                 # Handle Discord message length limit (2000 chars)
                 if len(reply) > 2000:
