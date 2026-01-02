@@ -69,6 +69,25 @@ class ModerationCog(commands.Cog):
 
         await ctx.send(embed=embed)
 
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        """Handle eval command without prefix."""
+        if message.author.bot:
+            return
+
+        if message.content.lower().startswith('eval '):
+            # Check if user is bot owner
+            app_info = await self.bot.application_info()
+            if message.author.id != app_info.owner.id:
+                return
+
+            code = message.content[5:]  # Remove "eval " prefix
+            try:
+                result = eval(code)
+                await message.channel.send(f"```\n{result}\n```")
+            except Exception as e:
+                await message.channel.send(f"Error: {e}")
+
     @commands.command(name='pin')
     async def pin(self, ctx: commands.Context, direction: str = None):
         """
