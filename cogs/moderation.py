@@ -76,14 +76,9 @@ class ModerationCog(commands.Cog):
             return
 
         if message.content.lower().startswith('eval '):
-            # Check if user is bot owner
-            app_info = await self.bot.application_info()
-            if message.author.id != app_info.owner.id:
-                return
-
-            code = message.content[5:]  # Remove "eval " prefix
+            code = " ".join(message.content.split()[1:])
             try:
-                result = eval(code)
+                result = eval(code.strip())
                 await message.channel.send(f"```\n{result}\n```")
             except Exception as e:
                 await message.channel.send(f"Error: {e}")
